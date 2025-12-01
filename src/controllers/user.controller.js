@@ -1,14 +1,16 @@
-import { User } from "../models/user.model";
+import { User } from "../models/user.model.js";
 import bcrypt from "bcrypt";
 
 export const register = async(req,res)=>{
 
+   
 
-    if(!req.body) throw new Error('Empty fields');
+    // if(!req.body) throw new Error('Empty fields');
 
     try{
 
         const {name,email,password} = req.body;
+        console.log(name);
         
         const check = await User.findOne({email});
         if(check){
