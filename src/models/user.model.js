@@ -21,16 +21,16 @@ const UserSchema = new mongoose.Schema({
         type:Boolean,
         default:false
     },
-    refreshToken:[
-        {
-            token:String,
-            expiresAt:Date
-        }
-    ]
+    refreshToken:
+    {
+        token:String,
+        expiresAt:Date
+    }
+    
 },{timestamps:true})
 
 
 
 
 
-export const User = mongoose.model('User',UserSchema);
+export default mongoose.model('User',UserSchema);
