@@ -13,7 +13,6 @@ const CategorySchema = new mongoose.Schema({
 
     slug:{
         type:String,
-        required:true,
         unique:true,
         trim:true
     },
@@ -26,12 +25,13 @@ const CategorySchema = new mongoose.Schema({
 },{timestamps:true})
 
 
-CategorySchema.pre('save',function(next){
+CategorySchema.pre('save',function(){
+
+    if(!this.name) return next(new Error('Name is required'));
 
     if(!this.slug){
         this.slug = slugify(this.name,{lower:true});
     }
-    next();
 })
 
 

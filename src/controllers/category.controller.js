@@ -106,3 +106,28 @@ export const deletecategory = async(req,res)=>{
         })
     }
 }
+
+
+export const getAllCategories = async(req,res)=>{
+
+    try{
+
+        const AllCats = await Category.find({});
+        if(AllCats.length === 0)return res.status(404).json({
+            success:false,
+            message:'No categories found...'
+        })
+
+        return res.status(200).json({
+            success:true,
+            AllCats
+        })
+        
+    }catch(err){
+        console.error('Error came in getting all categories: ',err.message);
+        return res.status(500).json({
+            success:false,
+            message:'INTERNAL SERVER ERROR'
+        })
+    }
+}
