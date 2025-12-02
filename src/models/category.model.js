@@ -29,7 +29,7 @@ const CategorySchema = new mongoose.Schema({
 CategorySchema.pre('save',function(next){
 
     if(!this.slug){
-        this.slug = slugify(this.name,{lower:true},'-');
+        this.slug = slugify(this.name,{lower:true});
     }
     next();
 })

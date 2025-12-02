@@ -83,14 +83,14 @@ const ProductSchema = new mongoose.Schema({
 ProductSchema.pre('save',function(next){
 
     if(!this.slug){
-        this.slug = slugify(this.title,{lower:true},'-')
+        this.slug = slugify(this.title,{lower:true})
     }
     next()
 })
 
 
 export default mongoose.model('Product',ProductSchema);
-
+    
 
 /* 
 {
