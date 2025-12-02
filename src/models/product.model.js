@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import slugify from "slugify";
 
 
 
@@ -18,6 +19,13 @@ const ProductSchema = new mongoose.Schema({
         required:true,
         minlength:10
     },
+    brand:{
+        type:String,
+        required:true,
+        index:true,
+        lowercase:true,
+        trim:true
+    },
     imageUrl:[
         {
             type:String,
@@ -34,6 +42,7 @@ const ProductSchema = new mongoose.Schema({
     category:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"Category",
+        required:true
 
     },
     originalPrice:{
@@ -46,18 +55,48 @@ const ProductSchema = new mongoose.Schema({
         required:true,
         min:0
     },
-    sizes:{
-        type:[Number],
-        enum:[6,7,8,9,10,11],
-        required:true
-    },
-    quantity:{
-        type:Number,
-        required:true,
-        min:1
+    
+    variants:{
+        type:[
+            {
+                size:{
+                    type:Number,
+                    enum:[6,7,8,9,10,11],
+                    required:true
+                },
+
+                stock:{
+                    type:Number,
+                    required:true,
+                    min:0
+                }
+            }
+        ],
+
+        validate: v=> v.length>0
     }
     
 },{timestamps:true})
 
 
+
+ProductSchema.pre('save',function(next){
+
+    if(!this.slug){
+        this.slug = slugify(this.title,{lower:true},'-')
+    }
+    next()
+})
+
+
 export default mongoose.model('Product',ProductSchema);
+
+
+/* 
+{
+  "variants": [
+    { "size": 6, "stock": 5 },
+    { "size": 7, "stock": 2 },
+    { "size": 8, "stock": 0 }
+  ]
+} */
