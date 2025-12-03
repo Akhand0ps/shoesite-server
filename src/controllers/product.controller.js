@@ -62,8 +62,37 @@ export const createproduct = async(req,res)=>{
 }
 
 
-/* export const updateProduct = async(req,res)=>{
+export const updateProduct = async(req,res)=>{
 
+    const slug = req.params.slug;
+    
+    if(!slug) return res.status(400).json({success:false,message:"SLUG IS REQUIRED TO ACCESS"});
+    
+       
+    try{
+
+        const product = await Product.findOne({slug});
+        if(!product)return res.status(404).json({success:false,message:"PRODUCT NOT FOUND"});
+
+        const media = req.files? req.files.map(file=>file.path):[];
+
+        if(media.length !== 0) {
+            product.imageUrl = media
+        }
+
+        Object.keys(req.body).forEach(key=>{
+            if(key !=='_id' && key !=='createdAt' && key !=='updatedAt'){
+                product[key] = req.body[key];
+            }
+        });
+
+        await product.save();
+        return res.status(200).json({success:true,product});
+
+    }catch(err){
+        console.error('Error came in updating',err.message);
+        return res.status(500).json({success:false,message:'INTERNAL SERVER ERROR'});
+    }
 
 }
 
@@ -75,4 +104,8 @@ export const deleteProduct = async(req,res)=>{
 export const getAllProducts = async(req,res)=>{
 
 }
- */
+
+
+export const isPubPrivate = async(req,res)=>{
+
+}
