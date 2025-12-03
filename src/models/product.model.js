@@ -35,7 +35,6 @@ const ProductSchema = new mongoose.Schema({
     ],
     slug:{
         type:String,
-        required:true,
         unique:true,
         trim:true
     },
@@ -55,7 +54,10 @@ const ProductSchema = new mongoose.Schema({
         required:true,
         min:0
     },
-    
+    isPublic:{
+        type:Boolean,
+        default:true
+    },
     variants:{
         type:[
             {
@@ -81,10 +83,8 @@ const ProductSchema = new mongoose.Schema({
 
 
 ProductSchema.pre('save',function(){
-
-    if(!this.title) return next(new Error('Title is required to generate the slug...'))
-
-    if(this.isModified('name')){
+    if(!this.title) throw new Error('Title is required to generate the slug');
+    if(!this.slug || this.isModified('title')){
         this.slug = slugify(this.title,{lower:true})
     }
 })
