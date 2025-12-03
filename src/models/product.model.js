@@ -80,12 +80,13 @@ const ProductSchema = new mongoose.Schema({
 
 
 
-ProductSchema.pre('save',function(next){
+ProductSchema.pre('save',function(){
 
-    if(!this.slug){
+    if(!this.title) return next(new Error('Title is required to generate the slug...'))
+
+    if(this.isModified('name')){
         this.slug = slugify(this.title,{lower:true})
     }
-    next()
 })
 
 

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Category from "../models/category.model.js"
 import Product from '../models/product.model.js'
 
@@ -8,6 +9,10 @@ export const createcategory = async(req,res)=>{
         const {name,parent} = req.body;
         if(!name) return res.status(400).json({success:false,message:'Name is required'});
 
+        const check = Category.findOne({name});
+        if(check){
+            return res.status(409).json({success:false,message:'Category already exist.'})
+        }
         const cat = {
             name:name,
             parent:parent
@@ -36,23 +41,33 @@ export const editcategory = async(req,res)=>{
     try{
 
         const slug = req.params.category;
+        console.log(slug);
         if(!slug) return res.status(400).json({success:false,message:"Slug is required..."});
 
-        const catDb = await findOne({slug});
+        const catDb = await Category.findOne({slug});
 
-        if(catDb) return res.status(404).json({
+        if(!catDb) return res.status(404).json({
             success:false,
             message:'Category not found...'
         })
 
 
         const {name,parent} = req.body;
+        console.log("req.bodyname: ",name);
+        console.log("req.bodyparent: ",parent);
 
-        const newCat = await Category.findOneAndUpdate(catDb,{name,parent},{new:true});
+        // const filter = {slug}
+        // const update = {name:name,parent:parent}
+        // const options = {new: true}
+        catDb.name = name,
+        catDb.parent = parent
+        await catDb.save();
+
+        // const newCat = await Category.findOneAndUpdate(filter,update,options);
 
         return res.status(200).json({
             success:true,
-            newCat
+            catDb
         });
         
     }catch(err){
@@ -66,17 +81,32 @@ export const editcategory = async(req,res)=>{
 
 export const deletecategory = async(req,res)=>{
 
-    if(!red.params.id) return res.status(404).json({
+    
+    if(!req.params.id) return res.status(404).json({
         success:false,
         message:'Id is required'
     })
 
     try{
 
-        const {id} = req.params.id;
-        const children = await Category.find({parent: id});
+        const id = req.params.id;
 
-        if(children.length > 0){
+        console.log("id:",id);
+        // console.log("newId: ",newId);
+        const cat = await Category.findOne({_id: id});
+
+        if(!cat){
+            return res.status(404).json({
+
+                success:false,
+                message:'Category not found.'
+            })
+        }
+        
+        const children = await Category.find({parent:id});
+
+
+        if((!cat.parent  && children.length>0) || (cat.parent && children.length>0)){
             return res.status(400).json({
                 success:false,
                 message:"Cannot delete category: it has subcatogories"
@@ -92,7 +122,7 @@ export const deletecategory = async(req,res)=>{
             })
         }
 
-        await Category.findByIdAndDelete({id});
+        await Category.findByIdAndDelete(id);
         return res.status(200).json({
             success:true,
             message:"Category deleted successfully..."

@@ -29,7 +29,7 @@ CategorySchema.pre('save',function(){
 
     if(!this.name) return next(new Error('Name is required'));
 
-    if(!this.slug){
+    if(this.isModified('name')){
         this.slug = slugify(this.name,{lower:true});
     }
 })
