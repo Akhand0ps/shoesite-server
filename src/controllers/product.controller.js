@@ -219,7 +219,7 @@ export const getProductByCategory = async(req,res)=>{
         })
         
     }catch(err){
-        console.error('Error came in finding products with brands..',err.message);
+        console.error('Error came in finding products with categoryId..',err.message);
         return res.status(500).json({
             success:false,
             message:'INTERNAL SERVER ERROR'
@@ -227,3 +227,89 @@ export const getProductByCategory = async(req,res)=>{
     }
 }
 
+export const getOneProduct = async(req,res)=>{
+
+    const slug = req.params.slug;
+    if(!slug) return res.status(400).json({success:false,message:'Slug is required to search...'});
+
+    try{
+        const product = await Product.findOne({slug});
+        if(!product)return res.status(404).json({
+            success:false,
+            message:'PRODUCT NOT FOUND ERROR 404'
+        })
+
+        return res.status(200).json({success:true,product});
+    }catch(err){
+        console.error('Error came in finding product with slug.',err.message);
+        return res.status(500).json({
+            success:false,
+            message:'INTERNAL SERVER ERROR'
+        })
+    }
+}
+
+export const searchProduct = async(req,res)=>{
+
+    const {search,categoryId,sort,page,limit,minPrice,maxPrice,brand}= req.query;
+    
+    try{
+        let filter = {};
+        if(search){
+            console.log(search);
+            filter.$text = {$search:search}
+        }
+        if(categoryId){
+            console.log(categoryId);
+            filter.category = categoryId;
+        }
+
+        if(minPrice && maxPrice){
+            filter.price = {$gte:minPrice , $lte:maxPrice};
+        }
+        if(brand){
+            filter.$text = {$search:brand};
+        }
+        console.log(filter);
+        const products = await Product.find(filter);
+        if(products.length === 0){
+            return res.status(404).json({
+                success:false,
+                message:'NO PRODUCTS FOUND..'
+            })
+        }
+        return res.status(200).json({
+            success:true,
+            products
+        })
+    }catch(err){
+        console.error('Error came in searching..',err.message);
+        return res.status(500).json({success:false,message:'INTERNAL SERVER ERROR'});
+    }
+}
+
+
+export const searchBar = async(req,res)=>{
+
+    try{
+        const {search} = req.query;
+        let filter = {};
+        if(search){
+            filter.$text = {$search:search};
+        }
+        const product = await Product.find(filter);
+        if(product.length ===0){
+            return res.status(404).json({
+                success:false,
+                message:'NO PRODUCTS FOUND..'
+            })
+        }
+        return res.status(200).json({
+            success:true,
+            product
+        })
+    }catch(err){
+        console.error('Error came in searching..',err.message);
+        return res.status(500).json({success:false,message:'INTERNAL SERVER ERROR'});
+    }
+}

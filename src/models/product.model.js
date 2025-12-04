@@ -90,6 +90,13 @@ ProductSchema.pre('save',function(){
     }
 })
 
+ProductSchema.index({
+    title:"text",
+    description:"text",
+    brand:"text"
+})
+
+
 
 export default mongoose.model('Product',ProductSchema);
     
