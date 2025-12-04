@@ -62,6 +62,11 @@ const ProductSchema = new mongoose.Schema({
     variants:{
         type:[
             {
+                sku:{
+                    type:String,
+                    unique:true,
+                    index:true
+                },
                 size:{
                     type:Number,
                     enum:[6,7,8,9,10,11],
@@ -72,6 +77,10 @@ const ProductSchema = new mongoose.Schema({
                     type:Number,
                     required:true,
                     min:0
+                },
+                price:{
+                    type:Number,
+                    required:true
                 }
             }
         ],
@@ -93,10 +102,20 @@ ProductSchema.pre('save',function(){
 ProductSchema.index({
     title:"text",
     description:"text",
-    brand:"text"
+    brand:"text",
+    slug:"text"
 })
 
+ProductSchema.pre('save',function(){
+    const productNameCode = this.title.substring(0,3).toUpperCase();
 
+    this.variants.forEach(variant=>{
+        if(!variant.sku){
+            const randomCode = Math.floor(1000+Math.random()*6000);
+            variant.sku = `${productNameCode}-${variant.size}-${randomCode}`
+        }
+    })
+})
 
 export default mongoose.model('Product',ProductSchema);
     

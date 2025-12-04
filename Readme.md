@@ -207,6 +207,102 @@ Base URL: `http://localhost:3000/api/v1`
 
 ### Products
 
+#### Get All Products
+- **GET** `/product/products`
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "Products": [
+      {
+        "_id": "product_id",
+        "title": "Nike Air Max 270",
+        "slug": "nike-air-max-270",
+        "description": "Comfortable running shoes",
+        "brand": "nike",
+        "imageUrl": ["https://cloudinary.com/image1.jpg"],
+        "category": "category_id",
+        "originalPrice": 150.00,
+        "finalPrice": 120.00,
+        "isPublic": true,
+        "variants": [{"size": 8, "stock": 10}]
+      }
+    ]
+  }
+  ```
+
+#### Get One Product
+- **GET** `/product/:slug`
+- **URL Parameters**: 
+  - `slug`: Product slug (e.g., `nike-air-max-270`)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "product": {
+      "_id": "product_id",
+      "title": "Nike Air Max 270",
+      "slug": "nike-air-max-270",
+      "description": "Comfortable running shoes with air cushioning",
+      "brand": "nike",
+      "imageUrl": ["https://cloudinary.com/image1.jpg"],
+      "category": "category_id",
+      "originalPrice": 150.00,
+      "finalPrice": 120.00,
+      "isPublic": true,
+      "variants": [{"size": 8, "stock": 10}]
+    }
+  }
+  ```
+
+#### Get Products by Brand
+- **GET** `/product/products/:brand`
+- **URL Parameters**: 
+  - `brand`: Brand name (e.g., `nike`, `adidas`)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "Products": [...]
+  }
+  ```
+
+#### Get Products by Category
+- **GET** `/product/products/category/:category`
+- **URL Parameters**: 
+  - `category`: Category ID
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "Products": [...]
+  }
+  ```
+
+#### Search Products
+- **GET** `/product/find?search=keyword`
+- **Query Parameters**: 
+  - `search`: Search term (searches in title, description, brand)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "products": [...]
+  }
+  ```
+
+#### Search Bar Suggestions
+- **GET** `/product/searchBar?search=keyword`
+- **Query Parameters**: 
+  - `search`: Search term (returns limited results for autocomplete)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "products": [...]
+  }
+  ```
+
 #### Create Product
 - **POST** `/product/create`
 - **Content-Type**: `multipart/form-data`
@@ -231,7 +327,7 @@ Base URL: `http://localhost:3000/api/v1`
   {
     "success": true,
     "message": "Product created successfully",
-    "product": {
+    "NewProduct": {
       "_id": "product_id",
       "title": "Nike Air Max 270",
       "slug": "nike-air-max-270",
@@ -274,7 +370,6 @@ Base URL: `http://localhost:3000/api/v1`
   ```json
   {
     "success": true,
-    "message": "Product updated successfully",
     "product": {
       "_id": "product_id",
       "title": "Nike Air Max 270",
@@ -282,6 +377,36 @@ Base URL: `http://localhost:3000/api/v1`
       "finalPrice": 100.00,
       "variants": [{"size": 8, "stock": 15}]
     }
+  }
+  ```
+
+#### Delete Product
+- **DELETE** `/product/delete/:slug`
+- **URL Parameters**: 
+  - `slug`: Product slug (e.g., `nike-air-max-270`)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "Product deleted successfully"
+  }
+  ```
+
+#### Toggle Product Visibility
+- **PATCH** `/product/toggle/:slug`
+- **URL Parameters**: 
+  - `slug`: Product slug
+- **Body** (JSON):
+  ```json
+  {
+    "isPublic": false
+  }
+  ```
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "nike-air-max-270 isPublic is change to false"
   }
   ```
 

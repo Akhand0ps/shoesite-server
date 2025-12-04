@@ -35,7 +35,7 @@ export const createproduct = async(req,res)=>{
         const ParsedVars = JSON.parse(variants);
 
         const media = req.files? req.files.map(file=>file.path): [];
-        console.log(media);
+        // console.log(media);
 
         const NewProduct = new Product({
             title:title,
@@ -272,6 +272,7 @@ export const searchProduct = async(req,res)=>{
         }
         console.log(filter);
         const products = await Product.find(filter);
+        // if(!filter)return res.status(400).json({success:false,message:'filter '})
         if(products.length === 0){
             return res.status(404).json({
                 success:false,

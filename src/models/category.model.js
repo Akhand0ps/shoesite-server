@@ -33,7 +33,7 @@ CategorySchema.pre('save',function(){
         this.slug = slugify(this.name,{lower:true});
     }
 })
-
+    
 
 
 export default mongoose.model('Category',CategorySchema);
