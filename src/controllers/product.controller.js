@@ -202,3 +202,28 @@ export const getProductByBrand = async(req,res)=>{
         })
     }
 }
+
+export const getProductByCategory = async(req,res)=>{
+
+    const categoryId = req.params.category;
+    // console.log(categoryId);
+    if(!categoryId)return res.status(400).json({success:false,message:'category name IS REQUIRED TO FIND THE PRODUCTS'});
+    try{
+        
+        const products = await Product.find({category:categoryId});
+         if(products.length ===0) return res.status(404).json({success:false,message:'No Products foudn 404'});
+
+        return res.status(200).json({
+            success:true,
+            products
+        })
+        
+    }catch(err){
+        console.error('Error came in finding products with brands..',err.message);
+        return res.status(500).json({
+            success:false,
+            message:'INTERNAL SERVER ERROR'
+        })
+    }
+}
+
