@@ -73,6 +73,7 @@ export const updateProduct = async(req,res)=>{
 
         const product = await Product.findOne({slug});
         if(!product)return res.status(404).json({success:false,message:"PRODUCT NOT FOUND"});
+        console.log(product);
 
         const media = req.files? req.files.map(file=>file.path):[];
 
@@ -87,10 +88,11 @@ export const updateProduct = async(req,res)=>{
         });
 
         await product.save();
+        console.log("after saving: ",product);
         return res.status(200).json({success:true,product});
 
     }catch(err){
-        console.error('Error came in updating',err.message);
+        console.error(err.message);
         return res.status(500).json({success:false,message:'INTERNAL SERVER ERROR'});
     }
 
