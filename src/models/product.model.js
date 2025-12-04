@@ -22,7 +22,7 @@ const ProductSchema = new mongoose.Schema({
     brand:{
         type:String,
         required:true,
-        index:true,
+        unique:true,
         lowercase:true,
         trim:true
     },

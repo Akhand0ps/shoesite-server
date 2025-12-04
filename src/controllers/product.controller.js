@@ -109,13 +109,96 @@ export const updateProduct = async(req,res)=>{
 
 export const deleteProduct = async(req,res)=>{
 
+    const slug = req.params.slug;
+    // console.log(slug);
+    if(!slug)return res.status(400).json({success:false,message:'SLUG IS REQUIRED TO FIND THE PRODUCT'});
+    try{
+        
+        const product = await Product.findOne({slug});
+        
+        if(!product)return res.status(404).json({success:false,message:'PRODUCT NOT FOUND 404'});
+
+        await Product.findOneAndDelete({slug});
+
+        return res.status(200).json({success:true,message:'Product deleted successfully'});
+    }catch(err){
+
+        console.error('Error came in deletion of product: ',err.message);
+        return res.status(500).json({success:false,message:'INTERNAL SERVER ERROR'});
+    }
 }
 
 export const getAllProducts = async(req,res)=>{
 
+    try{
+        const Products = await Product.find({});
+        if(Products.length ===0) return res.status(404).json({success:false,message:'Product list is empty'})
+        
+        return res.status(200).json({
+            success:true,
+            Products
+        })
+    }catch(err){
+        console.error('ERROR CAME IN GETTING PRODUCTS...',err.message);
+        return res.status(500).json({
+            success:false,
+            message:'INTERNAL SERVER ERROR'
+        })
+    }
 }
 
 
 export const isPubPrivate = async(req,res)=>{
 
+
+    const slug = req.params.slug;
+    if(!slug)return res.status(400).json({success:false,message:'SLUG IS REQUIRED TO FIND THE PRODUCT'});
+    try{
+        const product = await Product.findOne({slug});
+        const {isPublic} = req.body;
+        if(!isPublic) return res.status(400).json({success:false,message:'isPublic value is required to set'})
+
+        console.log(product.isPublic);
+        console.log(isPublic);
+
+        if(product.isPublic === isPublic) return res.status(409).json({success:false,message:'IsPublic is already set to what you are trying to set'})
+
+        product.isPublic = isPublic;
+
+        await product.save()
+        return res.status(200).json({
+            success:true,
+            message:`${slug} isPublic is change to ${isPublic}`
+        })
+    }catch(err){
+        console.error('Error came in seting public/private value..',err.message);
+        return res.status(500).json({
+            success:false,
+            message:'INTERNAL SERVER ERROR'
+        })
+    }
+}
+
+export const getProductByBrand = async(req,res)=>{
+
+    const brandName = req.params.brand;
+    if(!brandName)return res.status(400).json({success:false,message:'brand name IS REQUIRED TO FIND THE PRODUCTS'});
+
+    try{
+        
+        const products = await Product.find({brand:brandName})
+
+        if(products.length ===0) return res.status(404).json({success:false,message:'No Products foudn 404'});
+
+        return res.status(200).json({
+            success:true,
+            products
+        })
+    }catch(err){
+        console.error('Error came in finding products with brands..',err.message);
+        return res.status(500).json({
+            success:false,
+            message:'INTERNAL SERVER ERROR'
+        })
+    }
 }

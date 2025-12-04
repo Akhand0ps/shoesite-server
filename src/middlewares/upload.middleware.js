@@ -21,7 +21,7 @@ const storage = new CloudinaryStorage({
     cloudinary,
     params:{
         folder:'Shoesite/assets',
-        allowed_formats:['jpg','png','jpeg','gif','webp'],
+        allowed_formats:['jpg','png','jpeg','gif','webp','AVIF'],
     }
 })
 
