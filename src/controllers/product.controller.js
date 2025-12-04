@@ -73,7 +73,15 @@ export const updateProduct = async(req,res)=>{
 
         const product = await Product.findOne({slug});
         if(!product)return res.status(404).json({success:false,message:"PRODUCT NOT FOUND"});
-        console.log(product);
+      
+        const {variants} = req.body;
+
+        if(variants){
+            const parsedVariants = JSON.parse(variants);
+            req.body.variants = parsedVariants;
+            console.log("parsed: ",parsedVariants);
+        }
+       
 
         const media = req.files? req.files.map(file=>file.path):[];
 
