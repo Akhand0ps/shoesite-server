@@ -1,7 +1,7 @@
 import express from "express";
 import { upload } from "../middlewares/upload.middleware.js";
 import { createproduct,updateProduct,deleteProduct,getAllProducts,isPubPrivate, getProductByBrand, getProductByCategory, getOneProduct, searchProduct,searchBar } from "../controllers/product.controller.js";
-
+import { verifyAdmin } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 router.get('/find',searchProduct)
@@ -10,7 +10,7 @@ router.get('/searchBar',searchBar);
 router.post('/create',upload.array('media'),createproduct);
 router.put('/update/:slug',upload.array('media'),updateProduct);
 router.delete('/delete/:slug',deleteProduct);
-router.get('/products',getAllProducts);
+router.get('/products',verifyAdmin,getAllProducts);
 router.patch('/toggle/:slug',isPubPrivate);
 router.get('/products/:brand',getProductByBrand)
 router.get('/products/category/:category',getProductByCategory);

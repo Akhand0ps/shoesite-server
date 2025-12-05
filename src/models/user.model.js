@@ -21,10 +21,16 @@ const UserSchema = new mongoose.Schema({
         type:String,
         required:true
     },
-    isAdmin:{
-        type:Boolean,
-        default:false
+    cart:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'Cart'
     },
+    orders:[
+        {
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'Orders'
+        }
+    ],
     refreshToken:
     {
         token:String,

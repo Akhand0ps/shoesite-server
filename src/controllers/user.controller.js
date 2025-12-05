@@ -21,11 +21,10 @@ export const register = async(req,res)=>{
         if (!name || !email || !password) {
             return res.status(400).json({ success: false, message: "All fields required" });
         }
-        console.log(name);
+        // console.log(name);
         
-       
         const check = await User.findOne({email});
-        console.log(check);
+        // console.log(check);
 
         if(check){
             return res.status(409).json({
@@ -71,9 +70,6 @@ export const register = async(req,res)=>{
 
 
 export const login = async(req,res)=>{
-
-    
-
     try{
         const {email,password} = req.body;
 
