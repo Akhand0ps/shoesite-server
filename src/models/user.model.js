@@ -29,7 +29,29 @@ const UserSchema = new mongoose.Schema({
     {
         token:String,
         expiresAt:Date
-    }
+    },
+    addresses:[
+        {
+            lable:{
+                type:String,
+                default:null
+            },
+            line1:{
+                type:String,
+                required:true
+            },
+            city:{
+                type:String,
+                required:true
+            },
+            zip:{
+                type:String,
+                required:true,
+                minlength:6
+            }
+
+        }
+    ]
     
 },{timestamps:true})
 

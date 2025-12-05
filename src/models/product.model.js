@@ -50,11 +50,6 @@ const ProductSchema = new mongoose.Schema({
         required:true,
         min:0
     },
-    finalPrice:{
-        type:mongoose.Schema.Types.Decimal128,
-        required:true,
-        min:0
-    },
     isPublic:{
         type:Boolean,
         default:true
