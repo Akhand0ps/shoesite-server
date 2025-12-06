@@ -1,6 +1,6 @@
 
 import Cart from "../models/cart.model.js"
-
+import Product from "../models/product.model.js"
 
 export const createCart = async(req,res)=>{
     
@@ -37,6 +37,12 @@ export const addItemToCart = async(req,res)=>{
     try{
 
         const checkSku = await Cart.findOne({"items.sku":sku});
+        const checkstock = await Prouduct.findOne({"variants.type.sku":sku});
+        let stok = 0;
+        if( checkstock.variants.type.stock == 0) return res.status(400).json({success:false,message:'OUT OF STOCK'});
+        stok =checkstock.variants.type.stock;
+        console.log('stok: ',stok);
+
         if(checkSku){
             const updateQuantity =  checkSku.items.quantity + 1;
             await updateQuantity.save();
@@ -55,3 +61,5 @@ export const addItemToCart = async(req,res)=>{
         })
     }
 }
+
+

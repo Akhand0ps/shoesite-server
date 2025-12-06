@@ -21,7 +21,6 @@ const AdminSchema = new mongoose.Schema({
     },
     token:{
         type:String,
-        default:null
     }
     
 },{timestamps:true})

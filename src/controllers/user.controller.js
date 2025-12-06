@@ -4,49 +4,28 @@ import hashPass from "../utils/Hash.js";
 import jwt from "jsonwebtoken";
 
 export const register = async(req,res)=>{
-
-   
-
-    // if(!req.body) throw new Error('Empty fields');
-    console.log("=========")
-    // console.log(req.body);
-
-    
-
     try{
-
         const {name,email,password} = req.body;
-
-
         if (!name || !email || !password) {
             return res.status(400).json({ success: false, message: "All fields required" });
         }
         // console.log(name);
-        
         const check = await User.findOne({email});
         // console.log(check);
-
         if(check){
             return res.status(409).json({
                 success:false,
                 message:"User already exist"
             })
-            
         }
         console.log("----------")
        let hashPassword = await hashPass(password);
-
     //    console.log("hashedPass: ",hashPassword);
-
-
         await User.create({
             name,
             email,
             password:hashPassword
         })
-
-
-
         return res.status(201).json({
             success:true,
             message:"User created successfully",
@@ -56,14 +35,11 @@ export const register = async(req,res)=>{
             }
         })
     }catch(err){
-
         console.error(err.message);
         return res.status(500).json({
             success:false,
             message:"INTERNAL SERVER ERROR"
         })
-
-
     }
 
 }
@@ -166,4 +142,41 @@ export const refresh = async(req,res)=>{
             message:err.message
         })
     }
+}
+
+
+export const Newlogin = async(req,res)=>{
+const {email,password} = req.body;
+    if(!email || !password) return res.status(400).json({
+        success:false,
+        message:"Empty fields"
+    })
+    try{
+
+        const user = await User.findOne({email})
+        if(!user)return res.status(409).json({success:false,message:'user does not exist'});
+        const isMatch = await bcrypt.compare(password,user.password);
+
+        if(!isMatch) return res.status(401).json({
+            success:false,
+            message:'INVALID CREDENTIALS'
+        })
+
+        const token = jwt.sign({id:user._id,email:user.email},process.env.JWT_SECRET_USER,{expiresIn:"1h"});
+
+        user.refreshToken = token;
+        // console.log(user);
+        res.cookie ('Usertoken',token,{
+            httpOnly:true,
+            sameSite:'None',secure:true,
+            maxAge:60*60*1000
+        })
+        user.save();
+        return res.status(200).json({success:true,message:'Logged in successfully'})
+    }catch(err){
+        return res.status(500).json({
+            success:false,
+            message:err.message
+        })
+    }    
 }

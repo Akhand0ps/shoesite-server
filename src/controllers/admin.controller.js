@@ -48,10 +48,10 @@ export const login = async(req,res)=>{
             message:'INVALID CREDENTIALS'
         })
 
-        const token = jwt.sign({id:user._id,email:user.email},process.env.JWT_SECRET,{expiresIn:"1h"});
+        const token = jwt.sign({id:user._id,email:user.email},process.env.JWT_SECRET_ADMIN,{expiresIn:"1h"});
 
         user.token = token;
-        res.cookie ('token',token,{
+        res.cookie ('Admintoken',token,{
             httpOnly:true,
             sameSite:'None',secure:true,
             maxAge:60*60*1000

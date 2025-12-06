@@ -31,10 +31,8 @@ const UserSchema = new mongoose.Schema({
             ref:'Orders'
         }
     ],
-    refreshToken:
-    {
-        token:String,
-        expiresAt:Date
+    refreshToken:{
+        type:String,
     },
     addresses:[
         {
@@ -66,3 +64,5 @@ const UserSchema = new mongoose.Schema({
 
 
 export default mongoose.model('User',UserSchema);
+
+// expiresAt:Date
