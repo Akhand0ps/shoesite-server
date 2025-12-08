@@ -21,7 +21,11 @@ const AdminSchema = new mongoose.Schema({
     },
     token:{
         type:String,
-    }
+    },
+    role:{
+        type:String,
+        defualt:"admin"
+    },
     
 },{timestamps:true})
 

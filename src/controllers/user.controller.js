@@ -83,7 +83,7 @@ export const login = async(req,res)=>{
         await user.save()
 
 
-        console.log("refreshtk: " ,user.refreshToken.token);
+        // console.log("refreshtk: " ,user.refreshToken.token);
 
         res.cookie('jwt',refreshToken,{
           httpOnly:true,
@@ -117,7 +117,7 @@ export const refresh = async(req,res)=>{
 
         const refreshToken = req.cookies.jwt;
         const user = User.findOne({refreshToken}).email;
-        console.log(user)
+        // console.log(user)
         
         
         jwt.verify(refreshToken,process.env.REFRESH_TOKEN_SECRET,(err,decoded)=>{
@@ -152,21 +152,23 @@ const {email,password} = req.body;
         message:"Empty fields"
     })
     try{
-
-        const user = await User.findOne({email})
+        console.log('----------------------------------------------------')
+        const user = await User.findOne({email});
+        // console.log(user);
         if(!user)return res.status(409).json({success:false,message:'user does not exist'});
+
         const isMatch = await bcrypt.compare(password,user.password);
 
         if(!isMatch) return res.status(401).json({
             success:false,
             message:'INVALID CREDENTIALS'
         })
-
-        const token = jwt.sign({id:user._id,email:user.email},process.env.JWT_SECRET_USER,{expiresIn:"1h"});
-
+        // console.log(user.role);
+        // console.log(user._id);
+        const token = jwt.sign({id:user._id,role:user.role},process.env.JWT_SECRET,{expiresIn:"1h"});
+        // console.log("token: ",token);
         user.refreshToken = token;
-        // console.log(user);
-        res.cookie ('Usertoken',token,{
+        res.cookie ('token',token,{
             httpOnly:true,
             sameSite:'None',secure:true,
             maxAge:60*60*1000
