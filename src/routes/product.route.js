@@ -14,7 +14,7 @@ router.put('/update/:slug',authorizeM,onlyAdmin,upload.array('media'),updateProd
 
 router.delete('/delete/:slug',authorizeM,onlyAdmin,deleteProduct);
 
-router.get('/products',authorizeM,onlyAdmin,getAllProducts);
+router.get('/products',authorizeM,onlyUser,getAllProducts);
 
 router.patch('/toggle/:slug',authorizeM,onlyAdmin,isPubPrivate);
 

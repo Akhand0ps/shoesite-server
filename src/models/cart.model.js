@@ -40,15 +40,24 @@ const CartSchema = new mongoose.Schema({
                     required:true,
                     min:0
                 },
-                size:Number,
-
-                
+                size:{
+                    type:Number,
+                    required:true,
+                    enum:[6,7,8,9,10,11]
+                },
+                addedAt:{
+                    type:Date,
+                    default:Date.now()
+                }
             }
         ],
-        validate:v=>Array.isArray(v)
     },
+    totalAmount:Number,
+    totalItems:Number
    
 },{timestamps:true})
 
+
+CartSchema.index({'items.sku':1})
 
 export default mongoose.model('Cart',CartSchema);
