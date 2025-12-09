@@ -412,6 +412,99 @@ Base URL: `http://localhost:3000/api/v1`
 
 ---
 
+### Cart
+
+#### Get Cart
+- **GET** `/cart/`
+- **Headers**: Requires authentication (user token)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "cart": {
+      "_id": "cart_id",
+      "userId": "user_id",
+      "items": [
+        {
+          "productId": "product_id",
+          "sku": "NIKE-8-1234",
+          "title": "Nike Air Max",
+          "image": "https://cloudinary.com/image.jpg",
+          "size": 8,
+          "quantity": 2,
+          "price": 4299,
+          "subtotal": 8598
+        }
+      ],
+      "totalAmount": 8598,
+      "totalItems": 2
+    }
+  }
+  ```
+
+#### Add Item to Cart
+- **POST** `/cart/add`
+- **Headers**: Requires authentication (user token)
+- **Body** (JSON):
+  ```json
+  {
+    "sku": "NIKE-8-1234"
+  }
+  ```
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "Item added to cart",
+    "cart": {
+      "_id": "cart_id",
+      "userId": "user_id",
+      "items": [...],
+      "totalAmount": 8598,
+      "totalItems": 2
+    }
+  }
+  ```
+- **Notes:**
+  - Cart is automatically created if it doesn't exist
+  - If item already in cart, quantity is incremented
+  - Stock validation is performed before adding
+
+#### Remove Item from Cart
+- **DELETE** `/cart/remove/:sku`
+- **Headers**: Requires authentication (user token)
+- **URL Parameters**: 
+  - `sku`: Product SKU (e.g., `NIKE-8-1234`)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "Item removed",
+    "cart": {
+      "_id": "cart_id",
+      "items": [],
+      "totalAmount": 0,
+      "totalItems": 0
+    }
+  }
+  ```
+- **Notes:**
+  - Removes the entire item (all quantities) from cart
+  - Totals are automatically recalculated
+
+#### Clear Cart
+- **DELETE** `/cart/clear`
+- **Headers**: Requires authentication (user token)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "Cart cleared successfully"
+  }
+  ```
+
+---
+
 ## Data Models
 
 ### User
