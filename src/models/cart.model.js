@@ -52,8 +52,14 @@ const CartSchema = new mongoose.Schema({
             }
         ],
     },
-    totalAmount:Number,
-    totalItems:Number
+    totalAmount:{
+        type:Number,
+        default:0
+    },
+    totalItems:{
+        type:Number,
+        default:0
+    }
    
 },{timestamps:true})
 
