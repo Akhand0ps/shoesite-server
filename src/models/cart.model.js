@@ -48,6 +48,10 @@ const CartSchema = new mongoose.Schema({
                 addedAt:{
                     type:Date,
                     default:Date.now()
+                },
+                subtotal:{
+                    type:Number,
+                    required:true
                 }
             }
         ],

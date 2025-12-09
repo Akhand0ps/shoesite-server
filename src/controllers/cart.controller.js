@@ -52,22 +52,20 @@ export const addItemToCart = async(req,res)=>{
                 items:[],
                 totalAmount:0,
                 totalItems:0,
+                subtotal:0
             })
         }
-        console.log("cart: ",cart);
-        console.log("CartTotalAmount: ",cart.totalAmount);
+        // console.log("cart: ",cart);
+        // console.log("CartTotalAmount: ",cart.totalAmount);
 
 
         const existingItem = cart.items.find(item=>item.sku === sku);
 
         if(existingItem){
+
             existingItem.quantity +=1;
-            
-            cart.items.forEach(item=>{
-                cart.totalItems +=item.quantity;
-                cart.totalAmount +=item.price;
-            })
-            await cart.save();
+            // console.log("existing price: ",existingItem.price);
+            existingItem.subtotal = existingItem.quantity * existingItem.price;
         }else{
             cart.items.push({
                 productId:product._id,
@@ -76,17 +74,23 @@ export const addItemToCart = async(req,res)=>{
                 title:product.title,
                 quantity:1,
                 price:variant.price,
+                subtotal:variant.price*1,
                 size:variant.size
             })
-            
-            cart.items.forEach(item=>{
-                cart.totalItems +=item.quantity;
-                cart.totalAmount +=item.price;
-            })
-            await cart.save();
         }
 
+        let totalAmount = 0;
+        let totalItems = 0;
+
+        cart.items.forEach(item=>{
+            item.subtotal =item.quantity * item.price;
+            totalAmount +=item.subtotal;
+            totalItems += item.quantity;
+        })
+        cart.totalAmount = totalAmount;
+        cart.totalItems = totalItems;
         await cart.save();
+
 
         res.status(200).json({
             success:true,
@@ -114,27 +118,6 @@ export const viewCart = async(req,res)=>{
         if(!cart) return res.status(404).json({success:false,message:'cart not found'});
         if(cart.items.length === 0) return res.status(404).json({success:false,message:'Cart is empty'});
 
-        let cartItems = cart.items;
-
-        // if(cart.items.length > 1){
-            let totalPrice=0;
-
-            cart.items.forEach(item=>{
-
-                totalPrice +=item.price * item.quantity
-            })
-            const totalItems = cart.items.reduce((sum,item)=>{
-                return sum + item.quantity;
-            },0)
-            // console.log("totalPrice: ",totalPrice);
-            // console.log('totalItems: ',totalItems);
-            cart.totalAmount = totalPrice;
-            cart.totalItems = totalItems
-
-            await cart.save();
-            cartItems.push(totalPrice);
-        // }
-
         return res.status(200).json({
             success:true,
             cart
@@ -149,62 +132,41 @@ export const viewCart = async(req,res)=>{
 export const removeFromCart = async(req,res)=>{
 
     const sku = req.params.sku;
-    console.log(sku);
+    const userId = req.user.id;
+
+    // console.log(sku);
     if(!sku) return res.status(400).json({success:false,message:"SKU is required..."});
 
-    try{
-
-        const product = await Product.findOne({"variants.sku":sku});
-        if(!product) return res.status(404).json({success:false,message:'Product not found'});
-
-        // const variant = product.variants.find(v=>v.sku ===sku);
-        const userId = req.user.id;
+    try {
         const cart = await Cart.findOne({userId});
-        // console.log("cart: ",cart);
-        const cartProduct = await cart.items.find(item=>item.sku === sku);
+        if(!cart)return res.status(404).json({success:false,message:'Cart not found'});
+        const itemIndex = cart.items.findIndex(item=>item.sku === sku);
 
-        if(!cartProduct)return res.status(404).json({success:false,message:'product is not in Cart'})
-    
-        if(cartProduct){
-            if(cartProduct.quantity > 0){
-                
-                // console.log("quantity: ",cartProduct);
-                console.log("cartProductid: ",cartProduct._id);
-                if(cartProduct.quantity == 1){
-                    const productId = cartProduct._id;
-                    console.log(productId);
-                    await Cart.updateOne(
-                        {userId},
-                        {$pull:{items:{_id:productId}}}
-                    )
+        if(itemIndex === -1)return res.status(404).json({success:false,message:'product is not in Cart'})
+        cart.items.splice(itemIndex ,1);
+        
+        let totalAmount = 0;
+        let totalItems = 0;
 
-                    const price = cartProduct.price;
-                    console.log("price of that single product in cart: ",price);
-                    cart.totalAmount -=  price;
-                    cart.totalItems -=1;
-                    await cart.save();
-                    return res.status(200).json({success:true,message:'Had only only variant',cart});
-                }
-                cartProduct.quantity -=1;
+        cart.items.forEach(item=>{
+            item.subtotal = item.quantity * item.price,
+            totalAmount += item.subtotal,
+            totalItems +=item.quantity;
+        })
 
-                const price = cartProduct.price;
-                
-                console.log(price);
-                cartProduct.totalAmount = cartProduct.totalAmount - price;
-                cartProduct.totalItems -=1;
-                await cart.save();
-                res.status(200).json({
-                    success:true,
-                    message:"Item removed",
-                    cart
-                })
-            }
-        }
+        cart.totalAmount = totalAmount;
+        cart.totalItems  = totalItems;
 
-       
+        await cart.save();
+
+        res.status(200).json({
+            success:true,
+            message:"Item removed",
+            cart
+        })
     }catch(err){
-
         console.error('error came in removing the item from cart => ',err.message);
         return res.status(500).json({success:false,message:err.message});
     }
 }
+
