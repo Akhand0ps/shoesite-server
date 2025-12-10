@@ -8,21 +8,24 @@ const router = express.Router();
 router.get('/find',searchProduct)
 router.get('/searchBar',searchBar);
 
-router.post('/create',authorizeM,onlyAdmin,upload.array('media'),createproduct);
 
-router.put('/update/:slug',authorizeM,onlyAdmin,upload.array('media'),updateProduct);
 
-router.delete('/delete/:slug',authorizeM,onlyAdmin,deleteProduct);
 
-router.get('/products',authorizeM,onlyUser,getAllProducts);
+router.post('/admin/create',authorizeM,onlyAdmin,upload.array('media'),createproduct);
 
-router.patch('/toggle/:slug',authorizeM,onlyAdmin,isPubPrivate);
+router.put('/admin/update/:slug',authorizeM,onlyAdmin,upload.array('media'),updateProduct);
 
-router.get('/products/:brand',getProductByBrand)
+router.delete('/admin/delete/:slug',authorizeM,onlyAdmin,deleteProduct);
 
-router.get('/products/category/:category',getProductByCategory);
+router.get('/products',authorizeM,getAllProducts);
 
-router.get('/:slug',getOneProduct);
+router.patch('/admin/toggle/:slug',authorizeM,onlyAdmin,isPubPrivate);
+
+router.get('/products/:brand',authorizeM,getProductByBrand)
+
+router.get('/products/category/:category',authorizeM,getProductByCategory);
+
+router.get('/:slug',authorizeM,getOneProduct);
 
 
 export default router;

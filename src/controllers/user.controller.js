@@ -168,11 +168,24 @@ const {email,password} = req.body;
         const token = jwt.sign({id:user._id,role:user.role},process.env.JWT_SECRET,{expiresIn:"1h"});
         // console.log("token: ",token);
         user.refreshToken = token;
-        res.cookie ('token',token,{
+
+       if(user.role ==='user'){
+        res.cookie ('userToken',token,{
             httpOnly:true,
             sameSite:'None',secure:true,
             maxAge:60*60*1000
         })
+       }
+
+
+        if(user.role ==='admin'){
+        res.cookie ('adminToken',token,{
+            httpOnly:true,
+            sameSite:'None',secure:true,
+            maxAge:60*60*1000
+        })
+       }
+
         user.save();
         return res.status(200).json({success:true,message:'Logged in successfully'})
     }catch(err){

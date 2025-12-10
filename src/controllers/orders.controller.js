@@ -88,5 +88,65 @@ export const getSingleOrder = async(req,res)=>{
 
 export const cancelOrder = async(req,res)=>{
 
+    try{
+        const orderId = req.params.ordernumber;
+        const order = await Order.findOne({orderNumber:orderId});
+        if(!order)return res.status(404).json({success:false,message:'order not found'});
 
+        if(order.status === 'cancelled') return res.status(409).json({success:false,messaage:'already cancelled by you',order})
+        if(order.status ==='shipped') return res.status(403).json({success:false,message:'Sorry Order cannot be cancelled , Its already been shipped'})
+        
+        order.status = 'cancelled';
+        order.paymentStatus = 'failed'
+        await order.save();
+        return res.status(200).json({success:true,message:'Order cancelled. Thanks'})
+    }catch(err){
+
+        console.error('Error came in cancelling order => ',err.messaage);
+        return res.status(500).json({success:false,message:err.messaage});
+    }
+}
+export const updateStatus = async(req,res)=>{
+
+    // console.log("=====");
+    const orderId = req.params.orderId
+    try{
+
+        const orderStatus = req.body.orderStatus;
+        // console.log("orderstatus: ",orderStatus);
+
+        const order = await Order.findOne({orderNumber:orderId});
+        if(!order) return res.status(404).json({success:false,message:'Order not found'});
+
+        if(order.status === orderStatus) return res.status(409).json({success:false,message:'status is same as you are willing to change.'})
+
+        order.status = orderStatus;
+        await order.save();
+
+        return res.status(200).json({success:false,message:'Status successsfully set',order});
+
+    }catch(err){
+        console.error('Error came in updating status => ',err.messaage);
+        return res.status(500).json({success:false,message:err.messaage});
+    }
+}
+
+export const getAllOrdersAdmin = async(req,res)=>{
+
+    try{
+
+        const Allorders = await Order.find({})
+            .populate('userId','name email')
+            .sort({createdAt:-1});
+        
+        res.status(200).json({
+            success:true,
+            message:'All order from all users',
+            totalOrders: Allorders.length,
+            Allorders
+        });
+    }catch(err){
+        console.error('Error in getting all orders (admin) => ', err.message);
+        return res.status(500).json({success:false, message:err.message});
+    }
 }
