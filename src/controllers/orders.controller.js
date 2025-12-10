@@ -1,5 +1,6 @@
 import Order from "../models/orders.model.js";
 import Cart from "../models/cart.model.js"
+import Product from "../models/product.model.js"
 
 export const order = async(req,res)=>{
     // console.log(req.body.address);
@@ -33,6 +34,13 @@ export const order = async(req,res)=>{
         
 
         await order.save();
+
+        for(const item of cart.items){
+            await Product.updateOne(
+                {"variants.sku":item.sku},
+                {$inc:{"variants.$.stock": -item.quantity}}
+            )
+        }
 
 
         // Cart.updateOne({userId},{$set:{items:[],totalAmount:0,totalItems:0}})
