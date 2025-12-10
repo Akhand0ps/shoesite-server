@@ -10,7 +10,6 @@ const OrderSchema = new mongoose.Schema({
     orderNumber:{
         type:String,
         unique:true,
-        required:true
     },
     items:[{
         productId:{
@@ -66,7 +65,7 @@ const OrderSchema = new mongoose.Schema({
     paymentStatus:{
         type:String,
         enum:['pending','paid','failed','refunded'],
-        defualt:'pending'
+        default:'pending'
     },
     transactionId:{
         type:String
@@ -92,7 +91,6 @@ const OrderSchema = new mongoose.Schema({
         type:String,
         enum:['pending','processing','shipped','delivered','cancelled','refunded'],
         defualt:'pending',
-        required:true
     },
     trackingNumber:String,
     estimatedDelivery:Date,
@@ -102,5 +100,21 @@ const OrderSchema = new mongoose.Schema({
 OrderSchema.index({userId:1,createdAt:-1})
 OrderSchema.index({orderNumber:1});
 OrderSchema.index({status:1})
+
+
+
+
+OrderSchema.pre('save',function(){
+
+    // const orderName = 'ORD';
+    if(!this.orderNumber){
+        const orderId = this._id.toString().slice(-8).toUpperCase();
+        const date = new Date().toISOString().slice(2,10).replace(/-/g,'');
+
+        this.orderNumber = `ORD-${date}-${orderId}`
+    }
+})
+
+
 
 export default mongoose.model('Order',OrderSchema);

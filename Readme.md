@@ -10,6 +10,8 @@ Backend API server for the Shoesite e-commerce application. Built with Node.js, 
   - [Authentication](#authentication)
   - [Categories](#categories)
   - [Products](#products)
+  - [Cart](#cart)
+  - [Orders](#orders)
 - [Data Models](#data-models)
 - [Error Handling](#error-handling)
 
@@ -505,6 +507,109 @@ Base URL: `http://localhost:3000/api/v1`
 
 ---
 
+### Orders
+
+#### Create Order
+- **POST** `/order/order`
+- **Headers**: Requires authentication (user token)
+- **Body** (JSON):
+  ```json
+  {
+    "address": {
+      "fullName": "John Doe",
+      "phoneNumber": "1234567890",
+      "street": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10001",
+      "country": "USA"
+    },
+    "paymentMethod": "card"
+  }
+  ```
+- **Success Response** (200):
+  ```json
+  {
+    "message": "order created. Thanks!!",
+    "order": {
+      "_id": "order_id",
+      "userId": "user_id",
+      "orderNumber": "ORD-1234",
+      "items": [
+        {
+          "productId": "product_id",
+          "sku": "NIKE-8-1234",
+          "title": "Nike Air Max",
+          "image": "https://cloudinary.com/image.jpg",
+          "size": 8,
+          "quantity": 2,
+          "price": 4299,
+          "subtotal": 8598
+        }
+      ],
+      "subtotal": 8598,
+      "shippingCost": 40,
+      "tax": 18,
+      "totalAmount": 10184.64,
+      "paymentMethod": "card",
+      "paymentStatus": "pending",
+      "orderStatus": "pending",
+      "shippingAddress": {
+        "fullName": "John Doe",
+        "phoneNumber": "1234567890",
+        "street": "123 Main St",
+        "city": "New York",
+        "state": "NY",
+        "zipCode": "10001",
+        "country": "USA"
+      },
+      "createdAt": "2025-12-10T10:00:00.000Z",
+      "updatedAt": "2025-12-10T10:00:00.000Z"
+    }
+  }
+  ```
+- **Notes:**
+  - Order is created from user's cart
+  - Cart is automatically cleared after order creation
+  - `orderNumber` is auto-generated with format "ORD-XXXX"
+  - Shipping cost: ₹40 (fixed)
+  - Tax: 18% GST applied on (subtotal + shipping)
+  - Total calculation: `((subtotal + shippingCost) * tax/100) + subtotal + shippingCost`
+
+#### Get All Orders (My Orders)
+- **GET** `/order/myorders`
+- **Headers**: Requires authentication (user token)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "see below",
+    "Allorders": [
+      {
+        "_id": "order_id",
+        "userId": "user_id",
+        "orderNumber": "ORD-1234",
+        "items": [...],
+        "subtotal": 8598,
+        "shippingCost": 40,
+        "tax": 18,
+        "totalAmount": 10184.64,
+        "paymentMethod": "card",
+        "paymentStatus": "pending",
+        "orderStatus": "pending",
+        "shippingAddress": {...},
+        "createdAt": "2025-12-10T10:00:00.000Z",
+        "updatedAt": "2025-12-10T10:00:00.000Z"
+      }
+    ]
+  }
+  ```
+- **Notes:**
+  - Returns all orders for the authenticated user
+  - Orders are sorted by creation date (newest first)
+
+---
+
 ## Data Models
 
 ### User
@@ -549,6 +654,70 @@ Base URL: `http://localhost:3000/api/v1`
       stock: Number      // Required, min: 0
     }
   ],
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### Cart
+```javascript
+{
+  userId: ObjectId,      // Required, reference to User
+  items: [
+    {
+      productId: ObjectId,  // Reference to Product
+      sku: String,       // Product SKU
+      title: String,     // Product title
+      image: String,     // Product image URL
+      size: Number,      // Selected size
+      quantity: Number,  // Quantity in cart
+      price: Number,     // Unit price
+      subtotal: Number   // price × quantity
+    }
+  ],
+  totalAmount: Number,   // Sum of all subtotals
+  totalItems: Number,    // Total quantity of items
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### Order
+```javascript
+{
+  userId: ObjectId,      // Required, reference to User
+  orderNumber: String,   // Auto-generated, unique (e.g., "ORD-1234")
+  items: [               // Same structure as cart items
+    {
+      productId: ObjectId,
+      sku: String,
+      title: String,
+      image: String,
+      size: Number,
+      quantity: Number,
+      price: Number,
+      subtotal: Number
+    }
+  ],
+  subtotal: Number,      // Required, sum of items
+  shippingCost: Number,  // Required, default: 40
+  tax: Number,           // Required, default: 18 (percentage)
+  totalAmount: Number,   // Required, calculated total
+  paymentMethod: String, // Required, enum: ["card", "cod", "upi"]
+  paymentStatus: String, // Default: "pending", enum: ["pending", "completed", "failed"]
+  orderStatus: String,   // Default: "pending", enum: ["pending", "processing", "shipped", "delivered", "cancelled"]
+  shippingAddress: {     // Required
+    fullName: String,    // Required
+    phoneNumber: String, // Required
+    street: String,      // Required
+    city: String,        // Required
+    state: String,       // Required
+    zipCode: String,     // Required
+    country: String      // Required, default: "India"
+  },
+  trackingNumber: String, // Optional
+  estimatedDelivery: Date, // Optional
+  deliveredAt: Date,     // Optional
   createdAt: Date,
   updatedAt: Date
 }
