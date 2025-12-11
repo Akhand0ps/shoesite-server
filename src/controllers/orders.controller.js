@@ -1,6 +1,7 @@
 import Order from "../models/orders.model.js";
 import Cart from "../models/cart.model.js"
 import Product from "../models/product.model.js"
+import { createCart } from "./cart.controller.js";
 
 export const order = async(req,res)=>{
     // console.log(req.body.address);
@@ -15,6 +16,32 @@ export const order = async(req,res)=>{
         const userId = req.user.id;
         const cart = await Cart.findOne({userId});
         if(!cart) return res.json({success:false,message:'Cart not found'});
+
+        for(const item of cart.items){
+            const product = await Product.findOne({"variants.sku":item.sku});
+            if(!product){
+                return res.status(404).json({
+                    success:false,
+                    message:`Product ${item.title} not found`
+                })
+            }
+
+            const variant = product.variants.find(v=>v.sku === item.sku);
+
+            if(!variant){
+                return res.status(404).json({
+                    success:false,
+                    message:`Variant for ${item.title} not found`
+                })
+            }
+
+            if(variant.stock < item.quantity){
+                return res.status(400).json({
+                    success:false,
+                    message:`Insufficent stock for ${item.title}. Only ${variant.stock} available, you have ${item.quantity} in cart.`
+                })
+            }
+        }
         
         const subtotalOfCart = cart.totalAmount;
         const items = cart.items;
@@ -104,6 +131,14 @@ export const cancelOrder = async(req,res)=>{
         if(order.status === 'cancelled') return res.status(409).json({success:false,messaage:'already cancelled by you',order})
         if(order.status ==='shipped') return res.status(403).json({success:false,message:'Sorry Order cannot be cancelled , Its already been shipped'})
         
+        for(const item of order.items){
+
+            await Product.updateOne(
+                {"variants.sku":item.sku},
+                {$inc:{"variants.$.stock":item.quantity}}
+            )
+        }
+
         order.status = 'cancelled';
         order.paymentStatus = 'failed'
         await order.save();
