@@ -2,8 +2,136 @@
 
 Backend API server for the Shoesite e-commerce application. Built with Node.js, Express, and MongoDB.
 
+## Architecture
+
+### System Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                         CLIENT                              │
+│                    (React/Frontend)                         │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ HTTP Requests (REST API)
+                      │ Cookies (userToken/adminToken)
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    EXPRESS SERVER                           │
+│                   (Node.js + Express)                       │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              MIDDLEWARE LAYER                        │  │
+│  │  • CORS                                              │  │
+│  │  • express.json()                                    │  │
+│  │  • cookie-parser                                     │  │
+│  │  • authorizeM (JWT verification)                     │  │
+│  │  • onlyUser / onlyAdmin (role-based access)         │  │
+│  │  • multer + cloudinary (file uploads)               │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │                 ROUTES                               │  │
+│  │  /api/v1/auth    → User authentication              │  │
+│  │  /api/v1/cat     → Categories                       │  │
+│  │  /api/v1/product → Products                         │  │
+│  │  /api/v1/cart    → Shopping cart                    │  │
+│  │  /api/v1/order   → Orders                           │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │              CONTROLLERS                             │  │
+│  │  • user.controller.js                               │  │
+│  │  • category.controller.js                           │  │
+│  │  • product.controller.js                            │  │
+│  │  • cart.controller.js                               │  │
+│  │  • orders.controller.js                             │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │               MODELS (Mongoose)                      │  │
+│  │  • User     → Authentication & user data            │  │
+│  │  • Category → Product categories (hierarchical)     │  │
+│  │  • Product  → Products with variants (size/stock)   │  │
+│  │  • Cart     → User shopping carts                   │  │
+│  │  • Order    → Order management                      │  │
+│  └──────────────────────────────────────────────────────┘  │
+└─────────────────────┬───────────────────────────────────────┘
+                      │ Mongoose ODM
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    MONGODB DATABASE                         │
+│  Collections: users, categories, products, carts, orders    │
+└─────────────────────────────────────────────────────────────┘
+                      
+┌─────────────────────────────────────────────────────────────┐
+│                  CLOUDINARY (Image Storage)                 │
+│  Product images uploaded via multer-storage-cloudinary      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Features
+
+**Authentication & Authorization:**
+- JWT-based authentication with httpOnly cookies
+- Separate tokens for users (`userToken`) and admins (`adminToken`)
+- Role-based access control (RBAC)
+- Refresh token mechanism
+
+**Product Management:**
+- Multi-variant products (size, stock, SKU)
+- Auto-generated slugs for SEO
+- Image upload to Cloudinary
+- Stock management with validation
+- Category hierarchy (parent/child)
+
+**Shopping Flow:**
+1. User browses products → Add to cart (stock validation)
+2. Cart operations (add, remove, decrease quantity, clear)
+3. Checkout → Stock re-validation at order time
+4. Order creation → Automatic stock reduction
+5. Order cancellation → Stock restoration
+
+**Admin Features:**
+- Product CRUD operations
+- Category management
+- Stock adjustment endpoint
+- View all orders from all users
+- Update order status
+
+### Data Flow Example: Creating an Order
+
+```
+1. User clicks "Checkout"
+   ↓
+2. POST /api/v1/order/order (with address & payment method)
+   ↓
+3. Controller validates:
+   • User is authenticated
+   • Cart exists and has items
+   • Sufficient stock for ALL items (prevents overselling)
+   ↓
+4. Create Order document in MongoDB
+   ↓
+5. Reduce stock for each item (atomic updates)
+   ↓
+6. Clear user's cart
+   ↓
+7. Return order confirmation
+```
+
+### Security Measures
+
+- Passwords hashed with bcrypt (configurable salt rounds)
+- JWT tokens stored in httpOnly cookies (prevents XSS)
+- CORS enabled with credentials
+- Input validation on all endpoints
+- Role-based route protection
+- Stock validation to prevent overselling
+
+---
+
 ## Table of Contents
 
+- [Architecture](#architecture)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
 - [API Endpoints](#api-endpoints)
@@ -118,6 +246,19 @@ Base URL: `http://localhost:3000/api/v1`
     "accessToken": "new_jwt_token_here"
   }
   ```
+
+#### Logout
+- **POST** `/auth/logout`
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "Logged out successfully"
+  }
+  ```
+- **Notes:**
+  - Clears both `userToken` and `adminToken` cookies
+  - No authentication required
 
 ---
 
@@ -412,6 +553,37 @@ Base URL: `http://localhost:3000/api/v1`
   }
   ```
 
+#### Change Stock (Admin Only)
+- **PATCH** `/product/admin/products/:productId/stock`
+- **Headers**: Requires admin authentication
+- **URL Parameters**: 
+  - `productId`: Product slug
+- **Body** (JSON):
+  ```json
+  {
+    "sku": "NIKE-8-1234",
+    "delta": 10
+  }
+  ```
+  - `delta`: Positive to increase stock, negative to decrease
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "stock updation successfull",
+    "updatedVariant": {
+      "sku": "NIKE-8-1234",
+      "size": 8,
+      "stock": 25,
+      "price": 4299
+    }
+  }
+  ```
+- **Notes:**
+  - Admin only endpoint
+  - Validates that stock won't go negative
+  - Useful for manual stock adjustments, returns, or corrections
+
 ---
 
 ### Cart
@@ -504,6 +676,32 @@ Base URL: `http://localhost:3000/api/v1`
     "message": "Cart cleared successfully"
   }
   ```
+- **Notes:**
+  - Removes all items from cart
+  - Resets totalAmount and totalItems to 0
+
+#### Decrease Item Quantity
+- **PATCH** `/cart/decrease/:sku`
+- **Headers**: Requires authentication (user token)
+- **URL Parameters**: 
+  - `sku`: Product SKU (e.g., `NIKE-8-1234`)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "Item quantity decreased",
+    "cart": {
+      "_id": "cart_id",
+      "items": [...],
+      "totalAmount": 4299,
+      "totalItems": 1
+    }
+  }
+  ```
+- **Notes:**
+  - Decreases quantity by 1
+  - If quantity reaches 0, item is removed from cart
+  - If cart becomes empty, message changes to "Item removed, cart is now empty"
 
 ---
 
