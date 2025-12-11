@@ -120,11 +120,17 @@ export const viewCart = async(req,res)=>{
     const userId = req.user.id;
 
    try{
-        const cart = await Cart.findOne({userId});
+        let cart = await Cart.findOne({userId});
         
-        if(!cart) return res.status(404).json({success:false,message:'cart not found'});
-        if(cart.items.length === 0) return res.status(404).json({success:false,message:'Cart is empty'});
-
+        if(!cart){
+            cart = new Cart({
+                userId,
+                items:[],
+                totalAmount:0,
+                totalItems:0
+            })
+            await cart.save();
+        }
         return res.status(200).json({
             success:true,
             cart
