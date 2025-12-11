@@ -195,3 +195,20 @@ const {email,password} = req.body;
         })
     }    
 }
+export const logout = async(req,res)=>{
+    res.clearCookie('userToken',{
+        httpOnly:true,
+        sameSite:'None',
+        secure:true
+    });
+    res.clearCookie('adminToken',{
+        httpOnly:true,
+        sameSite:'None',
+        secure:true
+    });
+
+    return res.status(200).json({
+        success:true,
+        message:'Logged out'
+    })
+}
