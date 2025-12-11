@@ -1,3 +1,4 @@
+import { response } from "express";
 import Product from "../models/product.model.js";
 
 
@@ -312,5 +313,39 @@ export const searchBar = async(req,res)=>{
     }catch(err){
         console.error('Error came in searching..',err.message);
         return res.status(500).json({success:false,message:'INTERNAL SERVER ERROR'});
+    }
+}
+export const changeStock = async(req,res)=>{
+
+    const slug = req.params.productId
+    const {sku,delta} = req.body;
+    if(!sku || !delta || !slug) return res.status(400).json({success:false,message:'SKU, Quantity and slug is required'});
+
+    try{
+
+        const product = await Product.findOne({slug});
+        if(!product)return res.status(404).json({success:false,message:'Product not found'});
+        // console.log("product: ",product);
+        const variant = product.variants.find(v=>v.sku ===sku);
+        if(!variant)return res.status(404).json({success:false,message:'Variant not found 404'});
+        
+        if(variant.stock + delta < 0) throw new Error('Insufficient stock');
+
+
+        const updatedProduct = await Product.findOneAndUpdate(
+            {"variants.sku":sku},
+            {$inc:{"variants.$.stock":delta}},
+            {new:true}
+        )
+        if(!updatedProduct)return res.status(404).json({success:false,message:'Product not found'});
+        const updatedVariant = updatedProduct.variants.find(v=>v.sku===sku);
+        res.status(200).json({success:true,message:'stock updation successfull',updatedVariant});
+
+    }catch(err){
+        console.error('Error came in changestock => ',err.message);
+        return res.status(500).json({
+            success:false,
+            message:err.message
+        })
     }
 }
