@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
+import cors from "cors"
 import UserR from "./routes/user.route.js";
 import CatR from "./routes/category.route.js"
 import ProR from "./routes/product.route.js"
@@ -10,6 +11,18 @@ import cookieParser from 'cookie-parser';
 
 const app = express();
 
+const allowedOrigins = [
+    'http://localhost:5173'
+]
+app.use(cors({
+    origin:(origin ,callback)=>{
+        if(!origin || allowedOrigins.includes(origin)){
+            return callback(null,true)
+        }
+        return callback(new Error('Not allowed by CORS'))
+    },
+    credentials:true
+}))
 
 app.use(express.json())
 app.use(cookieParser());

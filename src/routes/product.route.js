@@ -17,7 +17,8 @@ router.put('/admin/update/:slug',authorizeM,onlyAdmin,upload.array('media'),upda
 
 router.delete('/admin/delete/:slug',authorizeM,onlyAdmin,deleteProduct);
 
-router.get('/products',authorizeM,getAllProducts);
+router.get('/products',getAllProducts);
+// router.get('/admin/products',getAllProducts);
 
 router.patch('/admin/toggle/:slug',authorizeM,onlyAdmin,isPubPrivate);
 
@@ -25,7 +26,7 @@ router.get('/products/:brand',authorizeM,getProductByBrand)
 
 router.get('/products/category/:category',authorizeM,getProductByCategory);
 
-router.get('/:slug',authorizeM,getOneProduct);
+router.get('/:slug',getOneProduct);
 router.patch("/admin/products/:productId/stock",authorizeM,onlyAdmin,changeStock);
 
 export default router;

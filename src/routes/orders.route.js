@@ -14,7 +14,7 @@ router.put("/cancel/:ordernumber",authorizeM,onlyUser,cancelOrder);
 
 
 router.get("/admin/orders",authorizeM,onlyAdmin,getAllOrdersAdmin);
-router.put("/admin/status/:orderId",authorizeM,onlyAdmin,updateStatus);
+router.patch("/admin/status/:orderId",authorizeM,onlyAdmin,updateStatus);
 router.get("/greet",authorizeM,onlyUser,(req,res)=>{
     res.send("aaag");
 })

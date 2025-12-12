@@ -1,11 +1,12 @@
-import { response } from "express";
 import Product from "../models/product.model.js";
-
+import { productSchema } from "../schemas/product.schema.js";
 
 export const createproduct = async(req,res)=>{
 
 
     console.log('came in createproduct controller.')
+
+
     try{
 
         const {
@@ -13,6 +14,13 @@ export const createproduct = async(req,res)=>{
             category,originalPrice,finalPrice,
             isPublic,variants
         } = req.body
+
+        // const data = productSchema.safeParse(req.body);
+        // console.log(data);
+        // console.log("==========");
+        // console.log(req.body)
+        // console.log("==========");
+
        /*  console.log("vars: ",req.body.variants);
         console.log("title: ",req.body.title);
         console.log("description:",req.body.description);
@@ -36,7 +44,10 @@ export const createproduct = async(req,res)=>{
         const ParsedVars = JSON.parse(variants);
 
         const media = req.files? req.files.map(file=>file.path): [];
-        // console.log(media);
+        console.log("==========");
+        console.log(media);
+        console.log("==========");
+
 
         const NewProduct = new Product({
             title:title,
