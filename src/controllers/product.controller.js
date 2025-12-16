@@ -5,23 +5,34 @@ export const createproduct = async(req,res)=>{
 
 
     console.log('came in createproduct controller.')
+    
 
 
     try{
 
         const {
             title,description,brand,
-            category,originalPrice,finalPrice,
+            category,originalPrice,
             isPublic,variants
         } = req.body
 
-        // const data = productSchema.safeParse(req.body);
-        // console.log(data);
-        // console.log("==========");
-        // console.log(req.body)
-        // console.log("==========");
 
-       /*  console.log("vars: ",req.body.variants);
+        //  if(!title || !description || !brand ||
+        //     !category || !originalPrice || !finalPrice || !variants
+        // ){
+        //     return res.status(400).json({success:false,message:'Fields are empty...'})
+        // }
+
+
+
+        req.body.variants = JSON.parse(req.body.variants);
+        
+        const data = productSchema.safeParse(req.body);
+        // console.log(data);
+        if(!data.success)throw new Error(`zod validation failed => ${data.error.issues}`);
+
+
+       /*  
         console.log("title: ",req.body.title);
         console.log("description:",req.body.description);
         console.log("brand: ",req.body.brand);
@@ -30,36 +41,40 @@ export const createproduct = async(req,res)=>{
         console.log("finalprice: ",req.body.finalPrice);
         console.log("ispublic: ",req.body.isPublic); */
         
-        if(!title || !description || !brand ||
-            !category || !originalPrice || !finalPrice || !variants
-        ){
-            return res.status(400).json({success:false,message:'Fields are empty...'})
+       /*  {
+        success: true,
+        data: {
+            title: 'Nike Court Vision',
+            description: "Nike Court Vision Low Men's Shoes. Nike IN",
+            brand: 'Nike',
+            category: '692f1f63f54adb07535f2f50',
+            variants: [ [Object], [Object] ]
+            }
         }
-
+ */
+       
         const isExist = await Product.findOne({title});
         if(isExist){
             return res.status(409).json({success:false,message:'Pruoduct already exist, Please create different name'})
         }
 
-        const ParsedVars = JSON.parse(variants);
+        // const ParsedVars = JSON.parse(variants);
 
         const media = req.files? req.files.map(file=>file.path): [];
-        console.log("==========");
-        console.log(media);
-        console.log("==========");
-
+        // console.log("==========");
+        // console.log(media);
+        // console.log("==========");
 
         const NewProduct = new Product({
-            title:title,
-            description,
-            brand,
+            title:data.data.title,
+            description:data.data.title,
+            brand:data.data.title,
             imageUrl:media,
-            category,
+            category:data.data.category,
             originalPrice,
-            finalPrice,
             isPublic,
-            variants:ParsedVars
-        })
+            variants:data.data.variants
+        }) 
 
         await NewProduct.save();
         return res.status(201).json({success:true,message:"Product created successfully",NewProduct})
