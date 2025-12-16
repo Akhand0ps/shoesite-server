@@ -18,7 +18,7 @@ export const register = async(req,res)=>{
                 message:"User already exist"
             })
         }
-        console.log("----------")
+        // console.log("----------")
        let hashPassword = await hashPass(password);
     //    console.log("hashedPass: ",hashPassword);
         await User.create({
@@ -152,7 +152,7 @@ const {email,password} = req.body;
         message:"Empty fields"
     })
     try{
-        console.log('----------------------------------------------------')
+        // console.log('----------------------------------------------------')
         const user = await User.findOne({email});
         // console.log(user);
         if(!user)return res.status(409).json({success:false,message:'user does not exist'});

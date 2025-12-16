@@ -40,7 +40,7 @@ export const editcategory = async(req,res)=>{
     try{
 
         const slug = req.params.category;
-        console.log(slug);
+        // console.log(slug);
         if(!slug) return res.status(400).json({success:false,message:"Slug is required..."});
 
         const catDb = await Category.findOne({slug});
@@ -52,8 +52,8 @@ export const editcategory = async(req,res)=>{
 
 
         const {name,parent} = req.body;
-        console.log("req.bodyname: ",name);
-        console.log("req.bodyparent: ",parent);
+        // console.log("req.bodyname: ",name);
+        // console.log("req.bodyparent: ",parent);
 
         // const filter = {slug}
         // const update = {name:name,parent:parent}
@@ -90,7 +90,7 @@ export const deletecategory = async(req,res)=>{
 
         const id = req.params.id;
 
-        console.log("id:",id);
+        // console.log("id:",id);
         // console.log("newId: ",newId);
         const cat = await Category.findOne({_id: id});
 

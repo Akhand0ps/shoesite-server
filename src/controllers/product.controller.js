@@ -1,13 +1,10 @@
 import Product from "../models/product.model.js";
-import { productSchema } from "../schemas/product.schema.js";
+import { createProductSchema, updateProductSchema } from "../schemas/product.schema.js";
+import stockSchema from "../schemas/stock.schema.js";
 
 export const createproduct = async(req,res)=>{
 
-
-    console.log('came in createproduct controller.')
-    
-
-
+    // console.log('came in createproduct controller.')
     try{
 
         const {
@@ -23,11 +20,13 @@ export const createproduct = async(req,res)=>{
         //     return res.status(400).json({success:false,message:'Fields are empty...'})
         // }
 
+        const media = req.files? req.files.map(file=>file.path): [];
 
 
         req.body.variants = JSON.parse(req.body.variants);
-        
-        const data = productSchema.safeParse(req.body);
+        req.body.imageUrl = media
+        // console.log(req.body);
+        const data = createProductSchema.safeParse(req.body);
         // console.log(data);
         if(!data.success)throw new Error(`zod validation failed => ${data.error.issues}`);
 
@@ -60,7 +59,6 @@ export const createproduct = async(req,res)=>{
 
         // const ParsedVars = JSON.parse(variants);
 
-        const media = req.files? req.files.map(file=>file.path): [];
         // console.log("==========");
         // console.log(media);
         // console.log("==========");
@@ -69,7 +67,7 @@ export const createproduct = async(req,res)=>{
             title:data.data.title,
             description:data.data.title,
             brand:data.data.title,
-            imageUrl:media,
+            imageUrl:data.data.imageUrl,
             category:data.data.category,
             originalPrice,
             isPublic,
@@ -101,22 +99,25 @@ export const updateProduct = async(req,res)=>{
         const product = await Product.findOne({slug});
         if(!product)return res.status(404).json({success:false,message:"PRODUCT NOT FOUND"});
       
-        const {variants} = req.body;
-
-        if(variants){
-            const parsedVariants = JSON.parse(variants);
-            req.body.variants = parsedVariants;
-            console.log("parsed: ",parsedVariants);
+        // const {variants} = req.body;
+        req.body.variants = JSON.parse(req.body.variants);
+        const media = req.files? req.files.map(file=>file.path):[];
+        if(media.length !== 0) {
+            req.body.imageUrl = media
         }
+        const ParsedVar = updateProductSchema.safeParse(req.body);
+
+        // if(variants){
+        //     const parsedVariants = JSON.parse(variants);
+        //     req.body.variants = parsedVariants;
+        //     console.log("parsed: ",parsedVariants);
+        // }
        
 
-        const media = req.files? req.files.map(file=>file.path):[];
 
-        if(media.length !== 0) {
-            product.imageUrl = media
-        }
+        console.log("ParsedVar:=> ",ParsedVar);
 
-        Object.keys(req.body).forEach(key=>{
+        Object.keys(ParsedVar.data).forEach(key=>{
             if(key !=='_id' && key !=='createdAt' && key !=='updatedAt'){
                 product[key] = req.body[key];
             }
@@ -343,24 +344,30 @@ export const searchBar = async(req,res)=>{
 }
 export const changeStock = async(req,res)=>{
 
+
     const slug = req.params.productId
     const {sku,delta} = req.body;
     if(!sku || !delta || !slug) return res.status(400).json({success:false,message:'SKU, Quantity and slug is required'});
+    const stockData = stockSchema.safeParse(req.body);
+    if(!stockData.success){
+        throw new Error(`Error came in validating changeStock request body => ${stockData.error.issues}`);
+    }
+    // console.log(stockData);
 
     try{
 
         const product = await Product.findOne({slug});
         if(!product)return res.status(404).json({success:false,message:'Product not found'});
         // console.log("product: ",product);
-        const variant = product.variants.find(v=>v.sku ===sku);
+        const variant = product.variants.find(v=>v.sku ===stockData.data.sku);
         if(!variant)return res.status(404).json({success:false,message:'Variant not found 404'});
+        // console.log(typeof stockData.data.delta);
+        if(variant.stock + stockData.data.delta < 0) throw new Error('Insufficient stock');
+
         
-        if(variant.stock + delta < 0) throw new Error('Insufficient stock');
-
-
         const updatedProduct = await Product.findOneAndUpdate(
-            {"variants.sku":sku},
-            {$inc:{"variants.$.stock":delta}},
+            {"variants.sku":stockData.data.sku},
+            {$inc:{"variants.$.stock":stockData.data.delta}},
             {new:true}
         )
         if(!updatedProduct)return res.status(404).json({success:false,message:'Product not found'});

@@ -3,7 +3,7 @@ import * as z from 'zod';
 
 
 
-export const productSchema = z.object({
+const productSchema = z.object({
 
     title:z.string().min(3).trim(),
     description:z.string().trim().min(10),
@@ -24,6 +24,14 @@ export const productSchema = z.object({
             stock:z.number().min(0),
             price:z.number().min(0)
         })
-    )
+    ),
+    isPublic:z.boolean(),
+    imageUrl:z.array(z.string()).min(1,'Please add atleast one Image')
 });
 
+
+
+export const updateProductSchema = productSchema.partial();
+export const createProductSchema = productSchema.extend({
+    isPublic: z.boolean().default(true)
+})
