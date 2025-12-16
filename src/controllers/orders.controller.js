@@ -1,6 +1,7 @@
 import Order from "../models/orders.model.js";
 import Cart from "../models/cart.model.js"
 import Product from "../models/product.model.js"
+import { razorpay } from "../config/razorpay.js";
 
 export const order = async(req,res)=>{
     // console.log(req.body.address);
@@ -13,6 +14,9 @@ export const order = async(req,res)=>{
     try{
 
         const userId = req.user.id;
+        const user = User.findOne({userId});
+        req.user.name = user.name
+        req.user.email = user.email
         const cart = await Cart.findOne({userId});
         if(!cart) return res.json({success:false,message:'Cart not found'});
 
@@ -55,29 +59,61 @@ export const order = async(req,res)=>{
             subtotal:subtotalOfCart,
             shippingCost:shipCost,
             tax:tax,
-            totalAmount: shipCost > 0 && tax>0 ? ( ((subtotalOfCart+shipCost) * tax/100) + subtotalOfCart+shipCost):subtotalOfCart
+            totalAmount: shipCost > 0 && tax>0 ? ( ((subtotalOfCart+shipCost) * tax/100) + subtotalOfCart+shipCost):subtotalOfCart,
+            paymentStatus:'pending',
+            orderStatus:'pending'
         })
         
 
         await order.save();
 
-        for(const item of cart.items){
-            await Product.updateOne(
-                {"variants.sku":item.sku},
-                {$inc:{"variants.$.stock": -item.quantity}}
-            )
-        }
 
 
-        // Cart.updateOne({userId},{$set:{items:[],totalAmount:0,totalItems:0}})
-        cart.items = [];
-        cart.totalAmount=0;
-        cart.totalItems = 0;
-        await cart.save();
+        //create payment link here bhidu
+
+        const paymentLink = await razorpay.paymentLink.create({
+            amount: order.totalAmount * 100,
+            currency:"INR",
+            description:`Order #${order.orderNumber}`,
+            customer:{
+                name:req.user.name,
+                email:req.user.email
+            },
+            notify:{
+                sms:false,
+                email:true
+            },
+            remainder_enable:false,
+            callback_url:`${process.env.FRONTEND_URL}/orders-success?orderId=${order._id}`,
+            callback_method:"get"
+        })
+
+        order.paymentLinkId = paymentLink.id;
+        await order.save();
+
+        // for(const item of cart.items){
+        //     await Product.updateOne(
+        //         {"variants.sku":item.sku},
+        //         {$inc:{"variants.$.stock": -item.quantity}}
+        //     )
+        // }
+
+
+        // // Cart.updateOne({userId},{$set:{items:[],totalAmount:0,totalItems:0}})
+        // cart.items = [];
+        // cart.totalAmount=0;
+        // cart.totalItems = 0;
+        // await cart.save();
         // console.log(order);
         // console.log("===============================");
-
-        return res.status(200).json({message:"order created. Thanks!!",order});
+        return res.status(200).json({
+            success:false,
+            message:'Order created. Complete payment.',
+            paymentUrl: paymentLink.short_url,
+            orderId:order._id,
+            orderNumber:order.orderNumber
+        })
+        // return res.status(200).json({message:"order created. Thanks!!",order});
 
     }catch(err){
         console.error('err came in order => ',err.message);

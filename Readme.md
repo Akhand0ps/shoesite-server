@@ -188,6 +188,13 @@ SALT=10
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+
+# Razorpay Payment Gateway
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+
+# Frontend URL (for payment redirects)
+FRONTEND_URL=http://localhost:5173
 ```
 
 ## API Endpoints
@@ -728,51 +735,63 @@ Base URL: `http://localhost:3000/api/v1`
 - **Success Response** (200):
   ```json
   {
-    "message": "order created. Thanks!!",
-    "order": {
-      "_id": "order_id",
-      "userId": "user_id",
-      "orderNumber": "ORD-1234",
-      "items": [
-        {
-          "productId": "product_id",
-          "sku": "NIKE-8-1234",
-          "title": "Nike Air Max",
-          "image": "https://cloudinary.com/image.jpg",
-          "size": 8,
-          "quantity": 2,
-          "price": 4299,
-          "subtotal": 8598
-        }
-      ],
-      "subtotal": 8598,
-      "shippingCost": 40,
-      "tax": 18,
-      "totalAmount": 10184.64,
-      "paymentMethod": "card",
-      "paymentStatus": "pending",
-      "orderStatus": "pending",
-      "shippingAddress": {
-        "fullName": "John Doe",
-        "phoneNumber": "1234567890",
-        "street": "123 Main St",
-        "city": "New York",
-        "state": "NY",
-        "zipCode": "10001",
-        "country": "USA"
-      },
-      "createdAt": "2025-12-10T10:00:00.000Z",
-      "updatedAt": "2025-12-10T10:00:00.000Z"
-    }
+    "success": false,
+    "message": "Order created. Complete payment.",
+    "paymentUrl": "https://rzp.io/i/abc123xyz",
+    "orderId": "order_id",
+    "orderNumber": "ORD-1234"
+  }
+  ```
+- **Order Details**:
+  ```json
+  {
+    "_id": "order_id",
+    "userId": "user_id",
+    "orderNumber": "ORD-1234",
+    "items": [
+      {
+        "productId": "product_id",
+        "sku": "NIKE-8-1234",
+        "title": "Nike Air Max",
+        "image": "https://cloudinary.com/image.jpg",
+        "size": 8,
+        "quantity": 2,
+        "price": 4299,
+        "subtotal": 8598
+      }
+    ],
+    "subtotal": 8598,
+    "shippingCost": 40,
+    "tax": 18,
+    "totalAmount": 10184.64,
+    "paymentMethod": "card",
+    "paymentStatus": "pending",
+    "orderStatus": "pending",
+    "paymentLinkId": "plink_abc123xyz",
+    "shippingAddress": {
+      "fullName": "John Doe",
+      "phoneNumber": "1234567890",
+      "street": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "zipCode": "10001",
+      "country": "USA"
+    },
+    "createdAt": "2025-12-10T10:00:00.000Z",
+    "updatedAt": "2025-12-10T10:00:00.000Z"
   }
   ```
 - **Notes:**
   - Order is created from user's cart
-  - Cart is automatically cleared after order creation
+  - Razorpay payment link is generated automatically
+  - User is redirected to `paymentUrl` to complete payment
+  - Cart is cleared only after successful payment
+  - Stock is reduced only after successful payment
   - `orderNumber` is auto-generated with format "ORD-XXXX"
   - Shipping cost: ₹40 (fixed)
   - Tax: 18% GST applied on (subtotal + shipping)
   - Total calculation: `((subtotal + shippingCost) * tax/100) + subtotal + shippingCost`
+  - After payment completion, user is redirected to: `${FRONTEND_URL}/orders-success?orderId=${order._id}`
 
 #### Get All Orders (My Orders)
 - **GET** `/order/myorders`
@@ -961,6 +980,438 @@ All error responses follow this format:
 - "Fields are empty..." (400)
 - "Product already exist, Please create different name" (409)
 - "Product not found" (404)
+
+---
+
+## Payment Gateway Integration
+
+### Overview
+
+This application uses **Razorpay** as the payment gateway for processing online payments. The integration creates payment links that users can complete through Razorpay's hosted payment page.
+
+### Payment Flow
+
+```
+1. User adds items to cart
+   ↓
+2. User proceeds to checkout
+   ↓
+3. POST /api/v1/order/order with address & payment method
+   ↓
+4. Server validates cart and stock availability
+   ↓
+5. Server creates Order document (status: pending)
+   ↓
+6. Server creates Razorpay Payment Link
+   ↓
+7. Server responds with payment URL
+   ↓
+8. Frontend redirects user to Razorpay payment page
+   ↓
+9. User completes payment on Razorpay
+   ↓
+10. Razorpay redirects to callback URL
+    ↓
+11. Frontend verifies payment status
+    ↓
+12. Server updates order status & clears cart
+    ↓
+13. Server reduces product stock
+    ↓
+14. User sees order confirmation
+```
+
+### Razorpay Setup
+
+#### 1. Create Razorpay Account
+- Go to https://razorpay.com/
+- Sign up for an account
+- Verify your business details
+
+#### 2. Get API Credentials
+- Login to Razorpay Dashboard
+- Navigate to **Settings** → **API Keys**
+- Generate API keys (Test mode for development)
+- Copy `Key ID` and `Key Secret`
+- Add them to your `.env` file:
+  ```env
+  RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxx
+  RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxx
+  ```
+
+#### 3. Configure Webhooks (Optional - for production)
+- Go to **Settings** → **Webhooks**
+- Add webhook URL: `https://yourdomain.com/api/v1/order/webhook`
+- Select events: `payment.captured`, `payment.failed`
+- Save the webhook secret
+
+### Implementation Details
+
+#### Server-Side Configuration
+
+**File: `src/config/razorpay.js`**
+```javascript
+import Razorpay from "razorpay";
+
+export const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
+});
+```
+
+#### Payment Link Creation
+
+**File: `src/controllers/orders.controller.js`**
+```javascript
+// Create Razorpay Payment Link
+const paymentLink = await razorpay.paymentLink.create({
+    amount: order.totalAmount * 100,  // Amount in paise (₹1 = 100 paise)
+    currency: "INR",
+    description: `Order #${order.orderNumber}`,
+    customer: {
+        name: req.user.name,
+        email: req.user.email
+    },
+    notify: {
+        sms: false,      // Disable SMS notifications
+        email: true      // Enable email notifications
+    },
+    reminder_enable: false,
+    callback_url: `${process.env.FRONTEND_URL}/orders-success?orderId=${order._id}`,
+    callback_method: "get"
+});
+
+// Save payment link ID to order
+order.paymentLinkId = paymentLink.id;
+await order.save();
+
+// Return payment URL to frontend
+res.json({
+    success: true,
+    message: "Order created. Complete payment.",
+    paymentUrl: paymentLink.short_url,  // Shortened URL for payment
+    orderId: order._id,
+    orderNumber: order.orderNumber
+});
+```
+
+### Frontend Integration Example
+
+#### React/JavaScript Example
+
+```javascript
+// Place Order Function
+const placeOrder = async (shippingAddress, paymentMethod) => {
+  try {
+    const response = await fetch('http://localhost:3000/api/v1/order/order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        address: shippingAddress,
+        paymentMethod: paymentMethod
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Redirect user to Razorpay payment page
+      window.location.href = data.paymentUrl;
+      
+      // Store order details for later reference
+      localStorage.setItem('pendingOrderId', data.orderId);
+      localStorage.setItem('pendingOrderNumber', data.orderNumber);
+    } else {
+      alert(data.message);
+    }
+  } catch (error) {
+    console.error('Order creation failed:', error);
+    alert('Failed to create order. Please try again.');
+  }
+};
+
+// Payment Success Page Handler
+const handlePaymentSuccess = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const orderId = urlParams.get('orderId');
+  
+  if (orderId) {
+    // Fetch order details to verify payment
+    fetch(`http://localhost:3000/api/v1/order/${orderId}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      },
+      credentials: 'include'
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.order.paymentStatus === 'completed') {
+        // Show success message
+        console.log('Payment successful!', data.order);
+      } else {
+        // Payment still pending or failed
+        console.log('Payment verification pending');
+      }
+    });
+  }
+};
+```
+
+### Payment Link Properties
+
+| Property | Type | Description | Example |
+|----------|------|-------------|---------|
+| `amount` | Number | Amount in smallest currency unit (paise for INR) | `10000` (₹100.00) |
+| `currency` | String | 3-letter ISO currency code | `"INR"` |
+| `description` | String | Payment description shown to customer | `"Order #ORD-1234"` |
+| `customer.name` | String | Customer's full name | `"John Doe"` |
+| `customer.email` | String | Customer's email for receipt | `"john@example.com"` |
+| `notify.sms` | Boolean | Send SMS notification | `false` |
+| `notify.email` | Boolean | Send email notification | `true` |
+| `reminder_enable` | Boolean | Enable payment reminders | `false` |
+| `callback_url` | String | URL to redirect after payment | `"http://localhost:5173/success"` |
+| `callback_method` | String | HTTP method for callback | `"get"` |
+
+### Payment Status Verification
+
+#### Option 1: Webhook (Recommended for Production)
+
+```javascript
+// Webhook handler
+export const handlePaymentWebhook = async (req, res) => {
+  try {
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const signature = req.headers['x-razorpay-signature'];
+    
+    // Verify webhook signature
+    const crypto = require('crypto');
+    const expectedSignature = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(JSON.stringify(req.body))
+      .digest('hex');
+    
+    if (signature === expectedSignature) {
+      const { event, payload } = req.body;
+      
+      if (event === 'payment.captured') {
+        // Update order status
+        const order = await Order.findOne({ 
+          paymentLinkId: payload.payment_link.entity.id 
+        });
+        
+        if (order) {
+          order.paymentStatus = 'completed';
+          order.orderStatus = 'processing';
+          await order.save();
+          
+          // Reduce stock
+          for (const item of order.items) {
+            await Product.updateOne(
+              { "variants.sku": item.sku },
+              { $inc: { "variants.$.stock": -item.quantity } }
+            );
+          }
+          
+          // Clear cart
+          await Cart.updateOne(
+            { userId: order.userId },
+            { $set: { items: [], totalAmount: 0, totalItems: 0 } }
+          );
+        }
+      }
+      
+      res.json({ status: 'ok' });
+    } else {
+      res.status(400).json({ error: 'Invalid signature' });
+    }
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).json({ error: 'Webhook processing failed' });
+  }
+};
+```
+
+#### Option 2: Manual Verification (Current Implementation)
+
+```javascript
+// Get order details and verify payment status
+export const verifyPayment = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId);
+    
+    if (!order) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Order not found' 
+      });
+    }
+    
+    // Fetch payment status from Razorpay
+    const paymentLink = await razorpay.paymentLink.fetch(order.paymentLinkId);
+    
+    if (paymentLink.status === 'paid') {
+      order.paymentStatus = 'completed';
+      order.orderStatus = 'processing';
+      await order.save();
+      
+      // Reduce stock and clear cart
+      // ... (same as webhook implementation)
+    }
+    
+    res.json({
+      success: true,
+      order,
+      paymentStatus: paymentLink.status
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+};
+```
+
+### Testing Razorpay Integration
+
+#### Test Mode
+
+1. Use test API keys (start with `rzp_test_`)
+2. Razorpay provides test card numbers for different scenarios:
+
+**Successful Payment:**
+- Card: `4111 1111 1111 1111`
+- CVV: Any 3 digits
+- Expiry: Any future date
+
+**Failed Payment:**
+- Card: `4000 0000 0000 0002`
+- CVV: Any 3 digits
+- Expiry: Any future date
+
+**Insufficient Funds:**
+- Card: `4000 0000 0000 9995`
+
+#### Live Mode
+
+1. Complete KYC verification on Razorpay
+2. Switch to live API keys (start with `rzp_live_`)
+3. Update `.env` file with live keys
+4. Test with small real transactions first
+
+### Security Best Practices
+
+1. **Never expose API secrets**: Keep `RAZORPAY_KEY_SECRET` in `.env` file only
+2. **Verify webhook signatures**: Always validate Razorpay webhook signatures
+3. **Verify payment on server**: Never trust client-side payment status
+4. **Use HTTPS**: Always use SSL in production
+5. **Implement idempotency**: Handle duplicate webhook calls gracefully
+6. **Log all transactions**: Keep audit trail of all payment attempts
+7. **Validate amounts**: Always verify order amount matches payment amount
+
+### Common Issues & Solutions
+
+#### Issue 1: Payment link expired
+**Solution**: Payment links expire after 15 days by default. Implement expiry handling:
+```javascript
+if (paymentLink.status === 'expired') {
+  // Create new payment link
+  const newPaymentLink = await razorpay.paymentLink.create({...});
+}
+```
+
+#### Issue 2: Webhook not receiving events
+**Solution**: 
+- Check webhook URL is publicly accessible
+- Verify webhook signature validation
+- Check Razorpay dashboard for webhook delivery logs
+
+#### Issue 3: Amount mismatch
+**Solution**: Always convert to paise (multiply by 100):
+```javascript
+amount: Math.round(order.totalAmount * 100) // Ensures integer value
+```
+
+### Razorpay Dashboard Features
+
+- **Payments**: View all transactions
+- **Orders**: Track order details
+- **Payment Links**: Manage all payment links
+- **Refunds**: Process refunds if needed
+- **Reports**: Download transaction reports
+- **Analytics**: View payment success rates
+
+### Alternative Payment Methods
+
+Razorpay supports multiple payment methods:
+- Credit/Debit Cards
+- Net Banking
+- UPI
+- Wallets (Paytm, PhonePe, etc.)
+- EMI
+- Cardless EMI
+
+These are automatically available on the payment page.
+
+### Refund Implementation
+
+```javascript
+export const refundPayment = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId);
+    
+    // Fetch payment details
+    const paymentLink = await razorpay.paymentLink.fetch(order.paymentLinkId);
+    const paymentId = paymentLink.payments[0].payment_id;
+    
+    // Create refund
+    const refund = await razorpay.payments.refund(paymentId, {
+      amount: order.totalAmount * 100,
+      notes: {
+        reason: 'Customer requested cancellation'
+      }
+    });
+    
+    // Update order
+    order.paymentStatus = 'refunded';
+    order.orderStatus = 'cancelled';
+    await order.save();
+    
+    // Restore stock
+    for (const item of order.items) {
+      await Product.updateOne(
+        { "variants.sku": item.sku },
+        { $inc: { "variants.$.stock": item.quantity } }
+      );
+    }
+    
+    res.json({
+      success: true,
+      message: 'Refund processed successfully',
+      refund
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+};
+```
+
+### Resources
+
+- **Razorpay Documentation**: https://razorpay.com/docs/
+- **Payment Links API**: https://razorpay.com/docs/api/payment-links/
+- **Webhooks Guide**: https://razorpay.com/docs/webhooks/
+- **Test Cards**: https://razorpay.com/docs/payments/payments/test-card-details/
+- **Node.js SDK**: https://github.com/razorpay/razorpay-node
 
 ---
 

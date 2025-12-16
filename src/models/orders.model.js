@@ -67,9 +67,10 @@ const OrderSchema = new mongoose.Schema({
         enum:['pending','paid','failed','refunded'],
         default:'pending'
     },
-    transactionId:{
+    paymentId:{
         type:String
     },
+    paymentLinkId:String,   //razorpay payment link id.
     subtotal:{
         type:Number,
         required:true,
@@ -94,6 +95,7 @@ const OrderSchema = new mongoose.Schema({
     },
     trackingNumber:String,
     estimatedDelivery:Date,
+    paidAt:Date
 },{timestamps:true})
 
 

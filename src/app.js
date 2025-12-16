@@ -8,6 +8,7 @@ import ProR from "./routes/product.route.js"
 import CartR from "./routes/cart.route.js"
 import OrdR from "./routes/orders.route.js"
 import cookieParser from 'cookie-parser';
+import paymentR from "./routes/payment.route.js"
 
 const app = express();
 
@@ -31,5 +32,6 @@ app.use("/api/v1/admin/cat",CatR);
 app.use("/api/v1/product",ProR);
 app.use("/api/v1/cart",CartR);
 app.use("/api/v1/order",OrdR);
+app.use("/api/v1/payment",paymentR);
 export default app;
 

@@ -17,7 +17,7 @@ export const authorizeM = async(req,res,next)=>{
         // console.log(decoded);
             req.user={
                 id:decoded.id,
-                role:decoded.role
+                role:decoded.role,
             };
             next();
 
