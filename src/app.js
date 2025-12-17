@@ -12,8 +12,7 @@ import paymentR from "./routes/payment.route.js"
 
 const app = express();
 
-const allowedOrigins = ['http://localhost:5173','https://solevia.vercel.app','http://www.localhost:5173',
-    'https://solevia.vercel.app']
+const allowedOrigins = ['http://localhost:5173','https://solevia.vercel.app']
 app.use(cors({
     origin:(origin,callback)=>{
 
@@ -21,9 +20,10 @@ app.use(cors({
             return callback(null,true)
         }
 
-        if(!orign || allowedOrigins.includes(origin)){
+        if(!origin || allowedOrigins.includes(origin)){
             return callback(null,true)
         }
+        console.log(`CORS blocked origin: `,origin);
         return callback(null,false)
     },
     credentials:true
