@@ -84,6 +84,7 @@ export const order = async(req,res)=>{
         console.log("5",order.totalAmount);
 
         if(paymentMethod ==='cod'){
+
             for(const item of cart.items){
                 await Product.updateOne(
                     {"variants.sku":item.sku},
@@ -91,7 +92,7 @@ export const order = async(req,res)=>{
                 )
             }
 
-            Cart.updateOne(
+            await Cart.updateOne(
                 {userId},
                 {$set:{items:[],totalItems:0,totalAmount:0}}
             )
@@ -101,8 +102,9 @@ export const order = async(req,res)=>{
         }
 
         //create payment link here bhidu
+        console.log("6")
 
-        const paymentLink = await razorpay.paymentLink.create({
+        const paymentLink = await razorpay.paymentLinks.create({
             amount: order.totalAmount * 100,
             currency:"INR",
             description:`Order #${order.orderNumber}`,
@@ -114,7 +116,7 @@ export const order = async(req,res)=>{
                 sms:false,
                 email:true
             },
-            remainder_enable:false,
+            reminder_enable:false,
             callback_url:`${process.env.FRONTEND_URL}/orders-success?orderId=${order._id}`,
             callback_method:"get"
         })
@@ -137,8 +139,9 @@ export const order = async(req,res)=>{
         // await cart.save();
         // console.log(order);
         // console.log("===============================");
+        console.log("7 paymenturl: ",paymentLink.short_url);
         return res.status(200).json({
-            success:false,
+            success:true,
             message:'Order created. Complete payment.',
             paymentUrl: paymentLink.short_url,
             orderId:order._id,
