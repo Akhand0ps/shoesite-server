@@ -59,7 +59,7 @@ export const handleWebhook = async(req,res)=>{
             order.paymentStatus = "paid";
             order.paymentId = payload.payment_id;
             order.paidAt = new Date();
-            order.orderStatus = 'processing';
+            order.status = 'processing';
 
             await order.save();
 
@@ -94,7 +94,7 @@ export const handleWebhook = async(req,res)=>{
 
             if(order){
                 order.paymentStatus = 'failed';
-                order.orderStatus = "cancelled";
+                order.status = "cancelled";
                 await order.save();
             }
 

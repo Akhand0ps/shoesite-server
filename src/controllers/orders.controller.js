@@ -74,7 +74,7 @@ export const order = async(req,res)=>{
             tax:tax,
             totalAmount: shipCost > 0 && tax>0 ? ( ((subtotalOfCart+shipCost) * tax/100) + subtotalOfCart+shipCost):subtotalOfCart,
             paymentStatus:'pending',
-            orderStatus:'pending'
+            status:'pending'
         })
         
         await order.save();
@@ -223,15 +223,15 @@ export const updateStatus = async(req,res)=>{
     const orderId = req.params.orderId
     try{
 
-        const orderStatus = req.body.orderStatus;
-        // console.log("orderstatus: ",orderStatus);
+        const status = req.body.status;
+        // console.log("status: ",status);
 
         const order = await Order.findOne({orderNumber:orderId});
         if(!order) return res.status(404).json({success:false,message:'Order not found'});
 
-        if(order.status === orderStatus) return res.status(409).json({success:false,message:'status is same as you are willing to change.'})
+        if(order.status === status) return res.status(409).json({success:false,message:'status is same as you are willing to change.'})
 
-        order.status = orderStatus;
+        order.status = status;
         await order.save();
 
         return res.status(200).json({success:false,message:'Status successsfully set',order});

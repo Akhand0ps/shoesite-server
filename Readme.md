@@ -721,21 +721,21 @@ Base URL: `http://localhost:3000/api/v1`
   ```json
   {
     "address": {
-      "fullName": "John Doe",
-      "phoneNumber": "1234567890",
-      "street": "123 Main St",
-      "city": "New York",
-      "state": "NY",
-      "zipCode": "10001",
-      "country": "USA"
+      "name": "John Doe",
+      "phone": "1234567890",
+      "line1": "123 Main St",
+      "city": "Mumbai",
+      "state": "MH",
+      "zip": "400001"
     },
     "paymentMethod": "card"
   }
   ```
+  - **Note:** `paymentMethod` values: `"card"`, `"upi"`, or `"cod"`
 - **Success Response** (200):
   ```json
   {
-    "success": false,
+    "success": true,
     "message": "Order created. Complete payment.",
     "paymentUrl": "https://rzp.io/i/abc123xyz",
     "orderId": "order_id",
@@ -761,21 +761,20 @@ Base URL: `http://localhost:3000/api/v1`
       }
     ],
     "subtotal": 8598,
-    "shippingCost": 40,
-    "tax": 18,
-    "totalAmount": 10184.64,
+    "shippingCost": 0,
+    "tax": 0,
+    "totalAmount": 8598,
     "paymentMethod": "card",
     "paymentStatus": "pending",
-    "orderStatus": "pending",
+    "status": "pending",
     "paymentLinkId": "plink_abc123xyz",
     "shippingAddress": {
-      "fullName": "John Doe",
-      "phoneNumber": "1234567890",
-      "street": "123 Main St",
-      "city": "New York",
-      "state": "NY",
-      "zipCode": "10001",
-      "country": "USA"
+      "name": "John Doe",
+      "phone": "1234567890",
+      "line1": "123 Main St",
+      "city": "Mumbai",
+      "state": "MH",
+      "zip": "400001"
     },
     "createdAt": "2025-12-10T10:00:00.000Z",
     "updatedAt": "2025-12-10T10:00:00.000Z"
@@ -783,15 +782,17 @@ Base URL: `http://localhost:3000/api/v1`
   ```
 - **Notes:**
   - Order is created from user's cart
-  - Razorpay payment link is generated automatically
+  - For online payment (`card` or `upi`): Razorpay payment link is generated
+  - For COD: Order is confirmed immediately
   - User is redirected to `paymentUrl` to complete payment
-  - Cart is cleared only after successful payment
-  - Stock is reduced only after successful payment
+  - Cart is cleared only after successful payment (or immediately for COD)
+  - Stock is reduced only after successful payment (or immediately for COD)
   - `orderNumber` is auto-generated with format "ORD-XXXX"
-  - Shipping cost: ₹40 (fixed)
-  - Tax: 18% GST applied on (subtotal + shipping)
-  - Total calculation: `((subtotal + shippingCost) * tax/100) + subtotal + shippingCost`
+  - Shipping cost: ₹0 (currently disabled)
+  - Tax: 0% (currently disabled)
+  - Total calculation: subtotal only (shipping and tax disabled)
   - After payment completion, user is redirected to: `${FRONTEND_URL}/orders-success?orderId=${order._id}`
+  - **Address Fields Required:** `name`, `phone`, `line1`, `city`, `state`, `zip`
 
 #### Get All Orders (My Orders)
 - **GET** `/order/myorders`
@@ -808,12 +809,12 @@ Base URL: `http://localhost:3000/api/v1`
         "orderNumber": "ORD-1234",
         "items": [...],
         "subtotal": 8598,
-        "shippingCost": 40,
-        "tax": 18,
-        "totalAmount": 10184.64,
+        "shippingCost": 0,
+        "tax": 0,
+        "totalAmount": 8598,
         "paymentMethod": "card",
         "paymentStatus": "pending",
-        "orderStatus": "pending",
+        "status": "pending",
         "shippingAddress": {...},
         "createdAt": "2025-12-10T10:00:00.000Z",
         "updatedAt": "2025-12-10T10:00:00.000Z"
@@ -880,15 +881,14 @@ const handleCheckout = async () => {
       },
       body: JSON.stringify({
         address: {
-          fullName: "John Doe",
-          phoneNumber: "1234567890",
-          street: "123 Main St",
+          name: "John Doe",
+          phone: "1234567890",
+          line1: "123 Main St",
           city: "Mumbai",
           state: "MH",
-          zipCode: "400001",
-          country: "India"
+          zip: "400001"
         },
-        paymentMethod: "online" // or "cod" for Cash on Delivery
+        paymentMethod: "card" // or "cod" or "upi"
       })
     });
     
@@ -1025,7 +1025,7 @@ const checkOrderStatus = async (orderNumber) => {
     const data = await response.json();
     
     if (data.success) {
-      const { paymentStatus, orderStatus } = data.order;
+      const { paymentStatus, status } = data.order;
       
       if (paymentStatus === 'paid') {
         console.log('Payment confirmed!');
@@ -1047,7 +1047,7 @@ const checkOrderStatus = async (orderNumber) => {
 
 ```javascript
 {
-  "paymentMethod": "online"
+  "paymentMethod": "card"  // or "upi"
 }
 ```
 
@@ -1085,17 +1085,21 @@ fetch(url, {
 
 #### 2. Payment Status Values
 
-- `pending` - Payment not yet completed
+Actual values from Order model `paymentStatus` field:
+- `pending` - Payment not yet completed (default)
 - `paid` - Payment successful and verified
 - `failed` - Payment failed or cancelled
+- `refunded` - Payment refunded
 
 #### 3. Order Status Values
 
-- `pending` - Order created, waiting for payment
+Actual values from Order model `status` field (note: field is called `status`, not `orderStatus`):
+- `pending` - Order created, waiting for payment (default)
 - `processing` - Payment received, order being prepared
 - `shipped` - Order shipped
 - `delivered` - Order delivered
 - `cancelled` - Order cancelled
+- `refunded` - Order refunded
 
 #### 4. Error Handling
 
@@ -1310,20 +1314,19 @@ UPI ID: success@razorpay
     }
   ],
   subtotal: Number,      // Required, sum of items
-  shippingCost: Number,  // Required, default: 40
-  tax: Number,           // Required, default: 18 (percentage)
+  shippingCost: Number,  // Default: 0
+  tax: Number,           // Default: 0
   totalAmount: Number,   // Required, calculated total
-  paymentMethod: String, // Required, enum: ["card", "cod", "upi"]
-  paymentStatus: String, // Default: "pending", enum: ["pending", "completed", "failed"]
-  orderStatus: String,   // Default: "pending", enum: ["pending", "processing", "shipped", "delivered", "cancelled"]
+  paymentMethod: String, // Required, enum: ["card", "upi", "cod"]
+  paymentStatus: String, // Default: "pending", enum: ["pending", "paid", "failed", "refunded"]
+  status: String,        // Default: "pending", enum: ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"]
   shippingAddress: {     // Required
-    fullName: String,    // Required
-    phoneNumber: String, // Required
-    street: String,      // Required
+    name: String,        // Required
+    phone: String,       // Required
+    line1: String,       // Required
     city: String,        // Required
     state: String,       // Required
-    zipCode: String,     // Required
-    country: String      // Required, default: "India"
+    zip: String          // Required
   },
   trackingNumber: String, // Optional
   estimatedDelivery: Date, // Optional
@@ -1542,7 +1545,7 @@ const handlePaymentSuccess = () => {
     })
     .then(res => res.json())
     .then(data => {
-      if (data.success && data.order.paymentStatus === 'completed') {
+      if (data.success && data.order.paymentStatus === 'paid') {
         // Show success message
         console.log('Payment successful!', data.order);
       } else {
@@ -1597,8 +1600,8 @@ export const handlePaymentWebhook = async (req, res) => {
         });
         
         if (order) {
-          order.paymentStatus = 'completed';
-          order.orderStatus = 'processing';
+          order.paymentStatus = 'paid';
+          order.status = 'processing';
           await order.save();
           
           // Reduce stock
@@ -1648,8 +1651,8 @@ export const verifyPayment = async (req, res) => {
     const paymentLink = await razorpay.paymentLink.fetch(order.paymentLinkId);
     
     if (paymentLink.status === 'paid') {
-      order.paymentStatus = 'completed';
-      order.orderStatus = 'processing';
+      order.paymentStatus = 'paid';
+      order.status = 'processing';
       await order.save();
       
       // Reduce stock and clear cart
@@ -1773,7 +1776,7 @@ export const refundPayment = async (req, res) => {
     
     // Update order
     order.paymentStatus = 'refunded';
-    order.orderStatus = 'cancelled';
+    order.status = 'cancelled';
     await order.save();
     
     // Restore stock
