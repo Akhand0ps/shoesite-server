@@ -827,6 +827,399 @@ Base URL: `http://localhost:3000/api/v1`
 
 ---
 
+## Payment Integration (Razorpay)
+
+### Payment Flow
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                      PAYMENT FLOW DIAGRAM                        │
+└──────────────────────────────────────────────────────────────────┘
+
+1. User clicks "Checkout" on Frontend
+   ↓
+2. Frontend calls: POST /api/v1/order/order
+   - Sends: address, paymentMethod
+   - Receives: paymentUrl, orderId, orderNumber
+   ↓
+3. Frontend redirects user to paymentUrl (Razorpay hosted page)
+   - User sees Razorpay payment interface
+   - User enters card/UPI/wallet details
+   ↓
+4. User completes payment on Razorpay
+   ↓
+5. Razorpay redirects back to: 
+   ${FRONTEND_URL}/orders-success?orderId=xxx&razorpay_payment_id=xxx&...
+   ↓
+6. Razorpay calls webhook: POST /api/v1/payment/webhook
+   - Backend verifies signature
+   - Backend updates order status → "paid"
+   - Backend reduces stock
+   - Backend clears cart
+   ↓
+7. Frontend checks order status: GET /api/v1/order/:orderNumber
+   - If paymentStatus === "paid" → Show success
+   - If paymentStatus === "pending" → Show "Verifying..."
+   - If paymentStatus === "failed" → Show error
+```
+
+### Frontend Implementation Guide
+
+#### Step 1: Checkout Flow
+
+```javascript
+// When user clicks "Checkout" button
+
+const handleCheckout = async () => {
+  try {
+    const response = await fetch('https://your-backend.com/api/v1/order/order', {
+      method: 'POST',
+      credentials: 'include', // Important for cookies
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        address: {
+          fullName: "John Doe",
+          phoneNumber: "1234567890",
+          street: "123 Main St",
+          city: "Mumbai",
+          state: "MH",
+          zipCode: "400001",
+          country: "India"
+        },
+        paymentMethod: "online" // or "cod" for Cash on Delivery
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // Redirect to Razorpay payment page
+      window.location.href = data.paymentUrl;
+      
+      // Store orderId in sessionStorage for later use
+      sessionStorage.setItem('pendingOrderId', data.orderId);
+      sessionStorage.setItem('pendingOrderNumber', data.orderNumber);
+    } else {
+      alert(data.message);
+    }
+  } catch (error) {
+    console.error('Checkout error:', error);
+    alert('Failed to create order');
+  }
+};
+```
+
+#### Step 2: Payment Success Page
+
+Create a page at `/orders-success` that handles the redirect from Razorpay:
+
+```javascript
+// OrderSuccessPage.jsx
+
+import { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+
+function OrderSuccessPage() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [status, setStatus] = useState('verifying'); // verifying, success, failed
+  const [order, setOrder] = useState(null);
+  
+  useEffect(() => {
+    const verifyPayment = async () => {
+      // Get parameters from URL
+      const orderId = searchParams.get('orderId');
+      const razorpay_payment_id = searchParams.get('razorpay_payment_id');
+      const razorpay_payment_link_status = searchParams.get('razorpay_payment_link_status');
+      
+      if (!orderId) {
+        setStatus('failed');
+        return;
+      }
+      
+      // Wait 2 seconds for webhook to process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Check order status
+      try {
+        const response = await fetch(`https://your-backend.com/api/v1/order/${orderId}`, {
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.order) {
+          setOrder(data.order);
+          
+          if (data.order.paymentStatus === 'paid') {
+            setStatus('success');
+          } else if (data.order.paymentStatus === 'pending') {
+            // Webhook might still be processing, check again
+            setTimeout(() => verifyPayment(), 3000);
+          } else {
+            setStatus('failed');
+          }
+        } else {
+          setStatus('failed');
+        }
+      } catch (error) {
+        console.error('Verification error:', error);
+        setStatus('failed');
+      }
+    };
+    
+    verifyPayment();
+  }, [searchParams]);
+  
+  if (status === 'verifying') {
+    return (
+      <div>
+        <h2>Verifying Payment...</h2>
+        <p>Please wait while we confirm your payment.</p>
+      </div>
+    );
+  }
+  
+  if (status === 'success') {
+    return (
+      <div>
+        <h2>Payment Successful!</h2>
+        <p>Order Number: {order?.orderNumber}</p>
+        <p>Amount Paid: ₹{order?.totalAmount}</p>
+        <button onClick={() => navigate('/orders')}>View Orders</button>
+      </div>
+    );
+  }
+  
+  if (status === 'failed') {
+    return (
+      <div>
+        <h2>Payment Verification Failed</h2>
+        <p>Failed to verify payment. Please check your orders page.</p>
+        <button onClick={() => navigate('/orders')}>View Orders</button>
+        <button onClick={() => navigate('/products')}>Continue Shopping</button>
+      </div>
+    );
+  }
+}
+
+export default OrderSuccessPage;
+```
+
+#### Step 3: Check Order Status (Alternative Method)
+
+If you want to manually check order status:
+
+```javascript
+const checkOrderStatus = async (orderNumber) => {
+  try {
+    const response = await fetch(
+      `https://your-backend.com/api/v1/order/${orderNumber}`,
+      {
+        credentials: 'include'
+      }
+    );
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      const { paymentStatus, orderStatus } = data.order;
+      
+      if (paymentStatus === 'paid') {
+        console.log('Payment confirmed!');
+      } else if (paymentStatus === 'pending') {
+        console.log('Payment still pending');
+      } else {
+        console.log('Payment failed');
+      }
+    }
+  } catch (error) {
+    console.error('Error checking status:', error);
+  }
+};
+```
+
+### Payment Methods
+
+#### Online Payment (Razorpay)
+
+```javascript
+{
+  "paymentMethod": "online"
+}
+```
+
+- User is redirected to Razorpay payment page
+- Supports: Cards, UPI, Netbanking, Wallets
+- Payment must be completed before order is confirmed
+- Stock is reduced only after successful payment
+
+#### Cash on Delivery (COD)
+
+```javascript
+{
+  "paymentMethod": "cod"
+}
+```
+
+- Order is created immediately
+- Stock is reduced immediately
+- Cart is cleared immediately
+- No payment link is generated
+- `paymentStatus` is set to "paid" automatically
+
+### Important Notes for Frontend Developers
+
+#### 1. Cookie Handling
+```javascript
+// Always include credentials for authenticated requests
+fetch(url, {
+  credentials: 'include', // This sends cookies
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
+```
+
+#### 2. Payment Status Values
+
+- `pending` - Payment not yet completed
+- `paid` - Payment successful and verified
+- `failed` - Payment failed or cancelled
+
+#### 3. Order Status Values
+
+- `pending` - Order created, waiting for payment
+- `processing` - Payment received, order being prepared
+- `shipped` - Order shipped
+- `delivered` - Order delivered
+- `cancelled` - Order cancelled
+
+#### 4. Error Handling
+
+```javascript
+// Always handle these cases:
+
+// 1. Cart is empty
+if (response.status === 400 && data.message === 'Cart not found') {
+  alert('Your cart is empty');
+  navigate('/cart');
+}
+
+// 2. Insufficient stock
+if (response.status === 400 && data.message.includes('Insufficient stock')) {
+  alert(data.message);
+  // Reload cart to show updated stock
+}
+
+// 3. User not authenticated
+if (response.status === 401) {
+  alert('Please login to continue');
+  navigate('/login');
+}
+```
+
+#### 5. Loading States
+
+```javascript
+const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+const handleCheckout = async () => {
+  setIsCheckingOut(true);
+  try {
+    // ... checkout logic
+  } finally {
+    setIsCheckingOut(false);
+  }
+};
+
+// In JSX
+<button disabled={isCheckingOut}>
+  {isCheckingOut ? 'Processing...' : 'Proceed to Payment'}
+</button>
+```
+
+### Testing Payment Integration
+
+#### Test Mode (Razorpay)
+
+Use these test credentials:
+
+**Test Cards:**
+```
+Success: 4111 1111 1111 1111
+CVV: Any 3 digits
+Expiry: Any future date
+
+Failure: 4000 0000 0000 0002
+```
+
+**Test UPI:**
+```
+UPI ID: success@razorpay
+```
+
+#### Testing Checklist
+
+- [ ] Order creation with online payment
+- [ ] Order creation with COD
+- [ ] Payment success flow
+- [ ] Payment failure flow
+- [ ] User closes payment window
+- [ ] User's cart is empty
+- [ ] Insufficient stock scenario
+- [ ] Network error during checkout
+- [ ] Order status check after payment
+- [ ] Multiple orders from same user
+
+### Common Issues & Solutions
+
+#### Issue 1: Payment Success but Order Still Pending
+
+**Cause:** Webhook not called or failed
+
+**Solution:**
+1. Check if webhook is configured in Razorpay dashboard
+2. Verify webhook URL is accessible (not localhost)
+3. Check backend logs for webhook errors
+4. Implement retry logic in frontend (check status every 3 seconds)
+
+#### Issue 2: "Payment Verification Failed" Page
+
+**Cause:** Webhook failed or signature mismatch
+
+**Solution:**
+1. Check `RAZORPAY_WEBHOOK_SECRET` in backend `.env`
+2. Verify webhook endpoint is receiving requests
+3. Check backend logs for specific error
+4. User can still check order status manually
+
+#### Issue 3: Stock Issues
+
+**Cause:** Multiple users buying same product
+
+**Solution:**
+- Backend validates stock at order creation
+- Stock is reduced only after payment success
+- If stock insufficient, order creation fails with clear message
+
+### Webhook Configuration (For Backend Setup)
+
+**Razorpay Dashboard:**
+1. Go to Settings → Webhooks
+2. Add webhook URL: `https://your-backend.com/api/v1/payment/webhook`
+3. Select events:
+   - `payment_link.paid`
+   - `payment_link.expired`
+   - `payment_link.cancelled`
+4. Copy webhook secret and add to `.env` as `RAZORPAY_WEBHOOK_SECRET`
+
+**Important:** Webhook URL must be publicly accessible (not localhost). For local development, use ngrok or similar tunneling service.
+
+---
+
 ## Data Models
 
 ### User

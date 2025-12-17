@@ -4,6 +4,7 @@ import crypto from "crypto";
 import Order from "../models/orders.model.js";
 import Cart from "../models/cart.model.js";
 import Product from "../models/product.model.js";
+import { success } from "zod";
 
 
 export const handleWebhook = async(req,res)=>{
@@ -88,7 +89,7 @@ export const handleWebhook = async(req,res)=>{
 
         if(event ==='payment_link.expired' || event === 'payment_link.cancelled'){
             const order = await Order.findOne({
-                paymentLinkId:payload_id
+                paymentLinkId:payload.id
             });
 
             if(order){
@@ -97,10 +98,13 @@ export const handleWebhook = async(req,res)=>{
                 await order.save();
             }
 
-            res.status(200).json({success:false})
+            return res.status(200).json({success:false})
         }
         
     }catch(err){
 
+        console.error('error came in verification of payment => ',err.message);
+        return res.status(500).json({success:false,message: err.message});
     }
 }
+
