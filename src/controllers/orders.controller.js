@@ -117,7 +117,7 @@ export const order = async(req,res)=>{
                 email:true
             },
             reminder_enable:false,
-            callback_url:`${process.env.FRONTEND_URL}/orders-success?orderId=${order._id}`,
+            callback_url:`${process.env.FRONTEND_URL}/orders-success?orderNumber=${order.orderNumber}`,
             callback_method:"get"
         })
 
@@ -259,5 +259,20 @@ export const getAllOrdersAdmin = async(req,res)=>{
     }catch(err){
         console.error('Error in getting all orders (admin) => ', err.message);
         return res.status(500).json({success:false, message:err.message});
+    }
+}
+
+export const checkOrderStatus = async(req,res)=>{
+
+    const ordernumber = req.params.ordernumber;
+
+    if(!ordernumber)return res.status(400).json({success:false,message:'ordernumber is missing'});
+    try{
+
+        
+    }catch(err){
+
+        console.error('Error came in getting orderStatus',err.messaage);
+        return res.status(500).json({success:false,messaage:err.messaage})
     }
 }

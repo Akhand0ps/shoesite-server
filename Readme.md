@@ -858,7 +858,7 @@ Base URL: `http://localhost:3000/api/v1`
    - Backend reduces stock
    - Backend clears cart
    ↓
-7. Frontend checks order status: GET /api/v1/order/:orderNumber
+7. Frontend checks order status: GET /api/v1/order/:ordernumber
    - If paymentStatus === "paid" → Show success
    - If paymentStatus === "pending" → Show "Verifying..."
    - If paymentStatus === "failed" → Show error
