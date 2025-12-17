@@ -7,9 +7,9 @@ const router = express.Router();
 
 
 router.get("/",authorizeM,getAllCategories)
-router.post("/create-cat",authorizeM,onlyAdmin,createcategory);
-router.put("/edit/:category",authorizeM,onlyAdmin,editcategory);
-router.delete("/delete/:id",authorizeM,onlyAdmin,deletecategory);
+router.post("/admin/create-cat",authorizeM,onlyAdmin,createcategory);
+router.put("/admin/edit/:category",authorizeM,onlyAdmin,editcategory);
+router.delete("/admin/delete/:id",authorizeM,onlyAdmin,deletecategory);
 
 
 

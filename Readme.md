@@ -35,6 +35,7 @@ Backend API server for the Shoesite e-commerce application. Built with Node.js, 
 │  │  /api/v1/product → Products                         │  │
 │  │  /api/v1/cart    → Shopping cart                    │  │
 │  │  /api/v1/order   → Orders                           │  │
+│  │  /api/v1/payment → Payment webhooks                 │  │
 │  └──────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ┌──────────────────────────────────────────────────────┐  │
@@ -273,6 +274,7 @@ Base URL: `http://localhost:3000/api/v1`
 
 #### Get All Categories
 - **GET** `/cat/`
+- **Headers**: Requires authentication
 - **Success Response** (200):
   ```json
   {
@@ -290,8 +292,9 @@ Base URL: `http://localhost:3000/api/v1`
   }
   ```
 
-#### Create Category
-- **POST** `/cat/create-cat`
+#### Create Category (Admin Only)
+- **POST** `/cat/admin/create-cat`
+- **Headers**: Requires admin authentication
 - **Body** (JSON):
   ```json
   {
@@ -312,8 +315,9 @@ Base URL: `http://localhost:3000/api/v1`
   }
   ```
 
-#### Edit Category
-- **PUT** `/cat/edit/:category`
+#### Edit Category (Admin Only)
+- **PUT** `/cat/admin/edit/:category`
+- **Headers**: Requires admin authentication
 - **URL Parameters**: 
   - `category`: Category slug (e.g., `mens-footwear`)
 - **Body** (JSON):
@@ -338,8 +342,9 @@ Base URL: `http://localhost:3000/api/v1`
   }
   ```
 
-#### Delete Category
-- **DELETE** `/cat/delete/:id`
+#### Delete Category (Admin Only)
+- **DELETE** `/cat/admin/delete/:id`
+- **Headers**: Requires admin authentication
 - **URL Parameters**: 
   - `id`: Category ID
 - **Success Response** (200):
@@ -359,6 +364,7 @@ Base URL: `http://localhost:3000/api/v1`
 
 #### Get All Products
 - **GET** `/product/products`
+- **Headers**: No authentication required
 - **Success Response** (200):
   ```json
   {
@@ -373,9 +379,8 @@ Base URL: `http://localhost:3000/api/v1`
         "imageUrl": ["https://cloudinary.com/image1.jpg"],
         "category": "category_id",
         "originalPrice": 150.00,
-        "finalPrice": 120.00,
         "isPublic": true,
-        "variants": [{"size": 8, "stock": 10}]
+        "variants": [{"sku": "NIKE-8-1234", "size": 8, "stock": 10, "price": 4299}]
       }
     ]
   }
@@ -383,6 +388,7 @@ Base URL: `http://localhost:3000/api/v1`
 
 #### Get One Product
 - **GET** `/product/:slug`
+- **Headers**: No authentication required
 - **URL Parameters**: 
   - `slug`: Product slug (e.g., `nike-air-max-270`)
 - **Success Response** (200):
@@ -398,9 +404,8 @@ Base URL: `http://localhost:3000/api/v1`
       "imageUrl": ["https://cloudinary.com/image1.jpg"],
       "category": "category_id",
       "originalPrice": 150.00,
-      "finalPrice": 120.00,
       "isPublic": true,
-      "variants": [{"size": 8, "stock": 10}]
+      "variants": [{"sku": "NIKE-8-1234", "size": 8, "stock": 10, "price": 4299}]
     }
   }
   ```
@@ -453,8 +458,9 @@ Base URL: `http://localhost:3000/api/v1`
   }
   ```
 
-#### Create Product
-- **POST** `/product/create`
+#### Create Product (Admin Only)
+- **POST** `/product/admin/create`
+- **Headers**: Requires admin authentication
 - **Content-Type**: `multipart/form-data`
 - **Body**:
   ```
@@ -463,9 +469,8 @@ Base URL: `http://localhost:3000/api/v1`
   brand: "nike"
   category: "category_id"
   originalPrice: 150.00
-  finalPrice: 120.00
   isPublic: true
-  variants: [{"size": 8, "stock": 10}, {"size": 9, "stock": 5}]
+  variants: [{"size": 8, "stock": 10, "price": 4299}, {"size": 9, "stock": 5, "price": 4299}]
   media: [image_file_1, image_file_2]
   ```
   - `media`: Array of image files (use key name "media" for all files)
@@ -489,11 +494,10 @@ Base URL: `http://localhost:3000/api/v1`
       ],
       "category": "category_id",
       "originalPrice": 150.00,
-      "finalPrice": 120.00,
       "isPublic": true,
       "variants": [
-        {"size": 8, "stock": 10},
-        {"size": 9, "stock": 5}
+        {"sku": "NIKE-8-1234", "size": 8, "stock": 10, "price": 4299},
+        {"sku": "NIKE-9-1235", "size": 9, "stock": 5, "price": 4299}
       ],
       "createdAt": "2025-12-01T10:00:00.000Z",
       "updatedAt": "2025-12-01T10:00:00.000Z"
@@ -501,8 +505,9 @@ Base URL: `http://localhost:3000/api/v1`
   }
   ```
 
-#### Update Product
-- **PUT** `/product/update/:slug`
+#### Update Product (Admin Only)
+- **PUT** `/product/admin/update/:slug`
+- **Headers**: Requires admin authentication
 - **URL Parameters**: 
   - `slug`: Product slug (e.g., `nike-air-max-270`)
 - **Content-Type**: `multipart/form-data`
@@ -513,8 +518,7 @@ Base URL: `http://localhost:3000/api/v1`
   - If sending new images with `media`, they will be added/replaced
 - **Example** (updating only price and stock):
   ```
-  finalPrice: 100.00
-  variants: [{"size": 8, "stock": 15}]
+  variants: [{"size": 8, "stock": 15, "price": 3999}]
   ```
 - **Success Response** (200):
   ```json
@@ -524,14 +528,14 @@ Base URL: `http://localhost:3000/api/v1`
       "_id": "product_id",
       "title": "Nike Air Max 270",
       "slug": "nike-air-max-270",
-      "finalPrice": 100.00,
-      "variants": [{"size": 8, "stock": 15}]
+      "variants": [{"sku": "NIKE-8-1234", "size": 8, "stock": 15, "price": 3999}]
     }
   }
   ```
 
-#### Delete Product
-- **DELETE** `/product/delete/:slug`
+#### Delete Product (Admin Only)
+- **DELETE** `/product/admin/delete/:slug`
+- **Headers**: Requires admin authentication
 - **URL Parameters**: 
   - `slug`: Product slug (e.g., `nike-air-max-270`)
 - **Success Response** (200):
@@ -542,8 +546,9 @@ Base URL: `http://localhost:3000/api/v1`
   }
   ```
 
-#### Toggle Product Visibility
-- **PATCH** `/product/toggle/:slug`
+#### Toggle Product Visibility (Admin Only)
+- **PATCH** `/product/admin/toggle/:slug`
+- **Headers**: Requires admin authentication
 - **URL Parameters**: 
   - `slug`: Product slug
 - **Body** (JSON):
@@ -596,7 +601,7 @@ Base URL: `http://localhost:3000/api/v1`
 ### Cart
 
 #### Get Cart
-- **GET** `/cart/`
+- **GET** `/cart/viewcart`
 - **Headers**: Requires authentication (user token)
 - **Success Response** (200):
   ```json
@@ -624,7 +629,7 @@ Base URL: `http://localhost:3000/api/v1`
   ```
 
 #### Add Item to Cart
-- **POST** `/cart/add`
+- **POST** `/cart/addItem`
 - **Headers**: Requires authentication (user token)
 - **Body** (JSON):
   ```json
@@ -795,7 +800,7 @@ Base URL: `http://localhost:3000/api/v1`
   - **Address Fields Required:** `name`, `phone`, `line1`, `city`, `state`, `zip`
 
 #### Get All Orders (My Orders)
-- **GET** `/order/myorders`
+- **GET** `/order/my`
 - **Headers**: Requires authentication (user token)
 - **Success Response** (200):
   ```json
@@ -1224,6 +1229,119 @@ UPI ID: success@razorpay
 
 ---
 
+### Order Management (Admin & User)
+
+#### Get Single Order
+- **GET** `/order/:ordernumber`
+- **Headers**: Requires authentication (user token)
+- **URL Parameters**: 
+  - `ordernumber`: Order number (e.g., `ORD-1234`)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "See below",
+    "order": {
+      "orderNumber": "ORD-1234",
+      "paymentStatus": "paid",
+      "status": "processing",
+      "totalAmount": 8598,
+      "items": [...],
+      "shippingAddress": {...}
+    }
+  }
+  ```
+- **Notes:**
+  - Users can only view their own orders
+  - Used for payment verification after Razorpay redirect
+
+#### Cancel Order
+- **PUT** `/order/cancel/:ordernumber`
+- **Headers**: Requires authentication (user token)
+- **URL Parameters**: 
+  - `ordernumber`: Order number (e.g., `ORD-1234`)
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "Order cancelled. Thanks"
+  }
+  ```
+- **Error Cases**:
+  - Cannot cancel if already cancelled (409)
+  - Cannot cancel if already shipped (403)
+- **Notes:**
+  - Stock is automatically restored when order is cancelled
+  - Payment status is set to "failed"
+  - Order status is set to "cancelled"
+
+#### Get All Orders (Admin)
+- **GET** `/order/admin/orders`
+- **Headers**: Requires admin authentication
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "All order from all users",
+    "totalOrders": 150,
+    "Allorders": [
+      {
+        "_id": "order_id",
+        "userId": {
+          "_id": "user_id",
+          "name": "John Doe",
+          "email": "john@example.com"
+        },
+        "orderNumber": "ORD-1234",
+        "paymentStatus": "paid",
+        "status": "processing",
+        "totalAmount": 8598,
+        "items": [...],
+        "createdAt": "2025-12-10T10:00:00.000Z"
+      }
+    ]
+  }
+  ```
+- **Notes:**
+  - Admin only endpoint
+  - Returns all orders from all users
+  - Orders sorted by creation date (newest first)
+  - User details populated (name, email)
+
+#### Update Order Status (Admin)
+- **PATCH** `/order/admin/status/:orderId`
+- **Headers**: Requires admin authentication
+- **URL Parameters**: 
+  - `orderId`: Order number (e.g., `ORD-1234`)
+- **Body** (JSON):
+  ```json
+  {
+    "status": "shipped"
+  }
+  ```
+  - Valid values: `"pending"`, `"processing"`, `"shipped"`, `"delivered"`, `"cancelled"`, `"refunded"`
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "Status successsfully set",
+    "order": {
+      "orderNumber": "ORD-1234",
+      "status": "shipped",
+      "trackingNumber": null
+    }
+  }
+  ```
+- **Error Cases**:
+  - Status is same as current status (409)
+  - Order not found (404)
+- **Notes:**
+  - Admin only endpoint
+  - Used to update order lifecycle status
+  - Can optionally add tracking number separately
+
+---
+
 ## Data Models
 
 ### User
@@ -1253,19 +1371,20 @@ UPI ID: success@razorpay
 ### Product
 ```javascript
 {
-  title: String,         // Required, min length: 1
+  title: String,         // Required, min length: 3
   slug: String,          // Auto-generated, unique
   description: String,   // Required, min length: 10
-  brand: String,         // Required
+  brand: String,         // Required, unique, lowercase
   imageUrl: [String],    // Array of image URLs (required, min 1 image)
   category: ObjectId,    // Required, reference to Category
   originalPrice: Decimal128,  // Required, min: 0
-  finalPrice: Decimal128,     // Required, min: 0
   isPublic: Boolean,     // Default: true
   variants: [            // Required, min 1 variant
     {
+      sku: String,       // Auto-generated, unique (e.g., "NIKE-8-1234")
       size: Number,      // Required, enum: [6,7,8,9,10,11]
-      stock: Number      // Required, min: 0
+      stock: Number,     // Required, min: 0
+      price: Number      // Required, individual variant price
     }
   ],
   createdAt: Date,
@@ -1319,6 +1438,8 @@ UPI ID: success@razorpay
   totalAmount: Number,   // Required, calculated total
   paymentMethod: String, // Required, enum: ["card", "upi", "cod"]
   paymentStatus: String, // Default: "pending", enum: ["pending", "paid", "failed", "refunded"]
+  paymentId: String,     // Razorpay payment ID (set after payment)
+  paymentLinkId: String, // Razorpay payment link ID
   status: String,        // Default: "pending", enum: ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"]
   shippingAddress: {     // Required
     name: String,        // Required
@@ -1331,6 +1452,7 @@ UPI ID: success@razorpay
   trackingNumber: String, // Optional
   estimatedDelivery: Date, // Optional
   deliveredAt: Date,     // Optional
+  paidAt: Date,          // When payment was completed
   createdAt: Date,
   updatedAt: Date
 }
@@ -1847,7 +1969,7 @@ export const refundPayment = async (req, res) => {
 ### Decimal Prices
 - Prices are stored as `Decimal128` in MongoDB
 - When received from API, convert to numbers for display
-- Example: `Number(product.finalPrice)`
+- Example: `Number(product.originalPrice)` or `Number(variant.price)`
 
 ---
 
