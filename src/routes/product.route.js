@@ -26,7 +26,7 @@ router.get('/products/:brand',authorizeM,getProductByBrand)
 
 router.get('/products/category/:category',authorizeM,getProductByCategory);
 
-router.get('/:slug',authorizeM,getOneProduct);
+router.get('/:slug',getOneProduct);
 router.patch("/admin/products/:productId/stock",authorizeM,onlyAdmin,changeStock);
 
 export default router;
