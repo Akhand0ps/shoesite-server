@@ -1,3 +1,5 @@
+import dotenv from "dotenv"
+dotenv.config();
 import Order from "../models/orders.model.js";
 import Cart from "../models/cart.model.js"
 import Product from "../models/product.model.js"
@@ -6,6 +8,7 @@ import User from "../models/user.model.js"
 
 export const order = async(req,res)=>{
     // console.log(req.body.address);
+    console.log(process.env.FRONTEND_URL);
     const address = req.body.address;
     const paymentMethod = req.body.paymentMethod;
     if(!address || !paymentMethod) return res.status(400).json({success:false,message:'address and paymentMethod is required'});
@@ -15,10 +18,16 @@ export const order = async(req,res)=>{
     try{
 
         const userId = req.user.id;
-        const user = User.findOne({userId});
-        req.user.name = user.name
-        req.user.email = user.email
+        console.log("userId:",userId);
+        const user = await User.findById(userId);
+
+        if(!user)return res.status(404).json({success:false,message:'User not found'});
+        // req.name = user.name;
+        // req.email = user.email;
+        // console.log(req.name,req.email);
+        // console.log("username:",user);
         const cart = await Cart.findOne({userId});
+        console.log("1");
         if(!cart) return res.json({success:false,message:'Cart not found'});
 
         for(const item of cart.items){
@@ -46,6 +55,9 @@ export const order = async(req,res)=>{
                 })
             }
         }
+
+        console.log("2");
+
         
         const subtotalOfCart = cart.totalAmount;
         const items = cart.items;
@@ -65,8 +77,11 @@ export const order = async(req,res)=>{
             orderStatus:'pending'
         })
         
-
         await order.save();
+
+        console.log("3",order.orderNumber);
+        console.log("4",order._id);
+        console.log("5",order.totalAmount);
 
         if(paymentMethod ==='cod'){
             for(const item of cart.items){
@@ -92,8 +107,8 @@ export const order = async(req,res)=>{
             currency:"INR",
             description:`Order #${order.orderNumber}`,
             customer:{
-                name:req.user.name,
-                email:req.user.email
+                name:user.name,
+                email:user.email
             },
             notify:{
                 sms:false,
