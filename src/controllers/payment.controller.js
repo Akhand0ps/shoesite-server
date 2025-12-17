@@ -32,7 +32,7 @@ export const handleWebhook = async(req,res)=>{
         //ab event data le lo razorpay bhejaga payload me.
 
         const event = req.body.event;
-        const payload = req.body.payload.paymentLink_link.entity;
+        const payload = req.body.payload.payment_link.entity;
 
         console.log('Webhook event: ',event);
 
@@ -55,8 +55,8 @@ export const handleWebhook = async(req,res)=>{
             }
 
 
-            order.paymentStatus = "paid",
-            order.paymentId = payload.payment._id;
+            order.paymentStatus = "paid";
+            order.paymentId = payload.payment_id;
             order.paidAt = new Date();
             order.orderStatus = 'processing';
 
@@ -86,9 +86,9 @@ export const handleWebhook = async(req,res)=>{
 
         //yaha payment fail handle kr
 
-        if(event ==='payment_link.expired' || event === 'payment.link.cancelled'){
+        if(event ==='payment_link.expired' || event === 'payment_link.cancelled'){
             const order = await Order.findOne({
-                paymentLinkId:payload._id
+                paymentLinkId:payload_id
             });
 
             if(order){
