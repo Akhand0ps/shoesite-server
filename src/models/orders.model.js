@@ -100,7 +100,7 @@ const OrderSchema = new mongoose.Schema({
 
 
 OrderSchema.index({userId:1,createdAt:-1})
-OrderSchema.index({orderNumber:1});
+// OrderSchema.index({orderNumber:1});
 OrderSchema.index({status:1})
 
 

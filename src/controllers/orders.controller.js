@@ -68,7 +68,22 @@ export const order = async(req,res)=>{
 
         await order.save();
 
+        if(paymentMethod !=='upi' || paymentMethod !=='card'){
+            for(const item of cart.items){
+                await Product.updateOne(
+                    {"variants.sku":item.sku},
+                    {$inc:{"variants.$.stock":-item.quantity}}
+                )
+            }
 
+            Cart.updateOne(
+                {userId},
+                {$set:{items:[],totalItems:0,totalAmount:0}}
+            )
+            await cart.save();
+
+            return res.status(200).json({message:"order created. Thanks!!",order});
+        }
 
         //create payment link here bhidu
 
@@ -114,7 +129,6 @@ export const order = async(req,res)=>{
             orderId:order._id,
             orderNumber:order.orderNumber
         })
-        // return res.status(200).json({message:"order created. Thanks!!",order});
 
     }catch(err){
         console.error('err came in order => ',err.message);
