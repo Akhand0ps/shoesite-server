@@ -61,8 +61,8 @@ export const order = async(req,res)=>{
         
         const subtotalOfCart = cart.totalAmount;
         const items = cart.items;
-        const shipCost=40;
-        const tax = 18;
+        const shipCost=0;
+        const tax = 0;
         
         const order = new Order({
             userId:req.user.id,
