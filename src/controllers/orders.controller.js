@@ -104,7 +104,7 @@ export const order = async(req,res)=>{
         //create payment link here bhidu
         console.log("6")
 
-        const paymentLink = await razorpay.paymentLinks.create({
+        const paymentLink = await razorpay.paymentLink.create({
             amount: order.totalAmount * 100,
             currency:"INR",
             description:`Order #${order.orderNumber}`,
