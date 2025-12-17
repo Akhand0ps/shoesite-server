@@ -2,11 +2,8 @@ import jwt from "jsonwebtoken";
 
 export const authorizeM = async(req,res,next)=>{
 
-    const isAdminRoute = req.originalUrl.includes('/admin');
-
-
-
-    const token = isAdminRoute ? req.cookies.adminToken: req.cookies.userToken;
+    // Check for both tokens - adminToken first (admins can access everything), then userToken
+    const token = req.cookies.adminToken || req.cookies.userToken;
 
     // console.log("token: ",token);
     if(!token) return res.status(400).json({success:false,meesage:'TOKEN NOT FOUND'});

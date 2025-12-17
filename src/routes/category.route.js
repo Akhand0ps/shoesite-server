@@ -13,4 +13,4 @@ router.delete("/admin/delete/:id",authorizeM,onlyAdmin,deletecategory);
 
 
 
-export default router;
+export default router;  
