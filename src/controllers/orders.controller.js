@@ -68,7 +68,7 @@ export const order = async(req,res)=>{
 
         await order.save();
 
-        if(paymentMethod !=='upi' || paymentMethod !=='card'){
+        if(paymentMethod ==='cod'){
             for(const item of cart.items){
                 await Product.updateOne(
                     {"variants.sku":item.sku},
