@@ -5,16 +5,26 @@ export const createcategory = async(req,res)=>{
 
     try{
 
-        const {name,parent} = req.body;
+        let {name,parent} = req.body;
+        // console.log("name:=>", name);
+        // console.log("parent: =>",parent);
+        // console.log(typeof parent)
+        if(parent == '') parent = null;
+        // console.log("after");
+        //  console.log("parent: =>",parent);
+        // console.log(typeof parent)
         if(!name) return res.status(400).json({success:false,message:'Name is required'});
 
-        const check = Category.findOne({name});
+        const check = await Category.findOne({name});
         if(check){
+            console.log("================================")
+            console.log("category:",check);
+            console.log("================================");
             return res.status(409).json({success:false,message:'Category already exist.'})
         }
         const cat = {
             name:name,
-            parent:parent
+            parent:parent !=null? parent : null
         }
         
         await Category.create(cat);

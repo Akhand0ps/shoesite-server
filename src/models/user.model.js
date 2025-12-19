@@ -31,7 +31,7 @@ const UserSchema = new mongoose.Schema({
             ref:'Orders'
         }
     ],
-    refreshToken:{
+    Token:{
         type:String,
     },
     role:{

@@ -13,6 +13,26 @@ export const createproduct = async(req,res)=>{
             isPublic,variants
         } = req.body
 
+          
+        // console.log("title: ",req.body.title);
+        // console.log("description:",req.body.description);
+        // console.log("brand: ",req.body.brand);
+        // console.log("cat: ",req.body.category);
+        // console.log("originalprice: ",req.body.originalPrice);
+        // console.log("ispublic: ",req.body.isPublic);
+        // console.log("variants:",req.body.variants);
+
+
+        // console.log("===========types of alll");
+        req.body.originalPrice = Number(req.body.originalPrice);
+        // console.log("title: ",typeof req.body.title);
+        // console.log("description:",typeof req.body.description);
+        // console.log("brand: ",typeof req.body.brand);
+        // console.log("cat: ",typeof req.body.category);
+        // console.log("originalprice: ",typeof req.body.originalPrice);
+        // console.log("ispublic: ",typeof req.body.isPublic);
+        // console.log("variants:",typeof req.body.variants);
+
 
         //  if(!title || !description || !brand ||
         //     !category || !originalPrice || !finalPrice || !variants
@@ -24,33 +44,18 @@ export const createproduct = async(req,res)=>{
 
 
         req.body.variants = JSON.parse(req.body.variants);
+        // console.log("after parsing variants:",typeof req.body.variants);
+        // console.log("variants after parsing => ",req.body.variants);
         req.body.imageUrl = media
         // console.log(req.body);
         const data = createProductSchema.safeParse(req.body);
+        // console.log("===================");
         // console.log(data);
+        // console.log("===================");
         if(!data.success)throw new Error(`zod validation failed => ${data.error.issues}`);
 
 
-       /*  
-        console.log("title: ",req.body.title);
-        console.log("description:",req.body.description);
-        console.log("brand: ",req.body.brand);
-        console.log("cat: ",req.body.category);
-        console.log("originalprice: ",req.body.originalPrice);
-        console.log("finalprice: ",req.body.finalPrice);
-        console.log("ispublic: ",req.body.isPublic); */
-        
-       /*  {
-        success: true,
-        data: {
-            title: 'Nike Court Vision',
-            description: "Nike Court Vision Low Men's Shoes. Nike IN",
-            brand: 'Nike',
-            category: '692f1f63f54adb07535f2f50',
-            variants: [ [Object], [Object] ]
-            }
-        }
- */
+      
        
         const isExist = await Product.findOne({title});
         if(isExist){
@@ -115,7 +120,7 @@ export const updateProduct = async(req,res)=>{
        
 
 
-        console.log("ParsedVar:=> ",ParsedVar);
+        // console.log("ParsedVar:=> ",ParsedVar);
 
         Object.keys(ParsedVar.data).forEach(key=>{
             if(key !=='_id' && key !=='createdAt' && key !=='updatedAt'){
@@ -124,7 +129,7 @@ export const updateProduct = async(req,res)=>{
         });
 
         await product.save();
-        console.log("after saving: ",product);
+        // console.log("after saving: ",product);
         return res.status(200).json({success:true,product});
 
     }catch(err){
@@ -186,8 +191,8 @@ export const isPubPrivate = async(req,res)=>{
         const {isPublic} = req.body;
         if(!isPublic) return res.status(400).json({success:false,message:'isPublic value is required to set'})
 
-        console.log(product.isPublic);
-        console.log(isPublic);
+        // console.log(product.isPublic);
+        // console.log(isPublic);
 
         if(product.isPublic === isPublic) return res.status(409).json({success:false,message:'IsPublic is already set to what you are trying to set'})
 
@@ -284,11 +289,11 @@ export const searchProduct = async(req,res)=>{
     try{
         let filter = {};
         if(search){
-            console.log(search);
+            // console.log(search);
             filter.$text = {$search:search}
         }
         if(categoryId){
-            console.log(categoryId);
+            // console.log(categoryId);
             filter.category = categoryId;
         }
 
@@ -298,7 +303,7 @@ export const searchProduct = async(req,res)=>{
         if(brand){
             filter.$text = {$search:brand};
         }
-        console.log(filter);
+        // console.log(filter);
         const products = await Product.find(filter);
         // if(!filter)return res.status(400).json({success:false,message:'filter '})
         if(products.length === 0){

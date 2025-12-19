@@ -167,7 +167,7 @@ const {email,password} = req.body;
         // console.log(user._id);
         const token = jwt.sign({id:user._id,role:user.role},process.env.JWT_SECRET,{expiresIn:"1h"});
         // console.log("token: ",token);
-        user.refreshToken = token;
+        user.Token = token;
 
        if(user.role ==='user'){
         res.cookie ('userToken',token,{
@@ -212,3 +212,7 @@ export const logout = async(req,res)=>{
         message:'Logged out'
     })
 }
+
+// export const isAdmin = asysn(req,res)=>{
+//     const 
+// }
