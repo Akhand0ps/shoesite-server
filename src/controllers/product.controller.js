@@ -164,8 +164,9 @@ export const deleteProduct = async(req,res)=>{
 export const getAllProducts = async(req,res)=>{
 
     try{
-        const Products = await Product.find({});
+        const Products = await Product.find().sort({createdAt:-1});
         if(Products.length ===0) return res.status(404).json({success:false,message:'Product list is empty'})
+        
         
         return res.status(200).json({
             success:true,
