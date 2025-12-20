@@ -9,7 +9,7 @@ import CartR from "./routes/cart.route.js"
 import OrdR from "./routes/orders.route.js"
 import cookieParser from 'cookie-parser';
 import paymentR from "./routes/payment.route.js"
-
+import ReviewR from "./routes/review.routes.js"
 const app = express();
 
 const allowedOrigins = ['http://localhost:5173','https://solevia.vercel.app']
@@ -37,5 +37,6 @@ app.use("/api/v1/product",ProR);
 app.use("/api/v1/cart",CartR);
 app.use("/api/v1/order",OrdR);
 app.use("/api/v1/payment",paymentR);
+app.use("/api/v1/product/review",ReviewR);
 export default app;
 
