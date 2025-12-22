@@ -12,7 +12,7 @@ import paymentR from "./routes/payment.route.js"
 
 const app = express();
 
-const allowedOrigins = ['http://localhost:5173','https://solevia.vercel.app']
+const allowedOrigins = ['http://localhost:5173','https://solevia.vercel.app','https://solecraft-ten.vercel.app']
 app.use(cors({
     origin:(origin,callback)=>{
 
