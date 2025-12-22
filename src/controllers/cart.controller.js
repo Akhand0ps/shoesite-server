@@ -28,7 +28,7 @@ export const createCart = async(req,res)=>{
 export const addItemToCart = async(req,res)=>{
 
     const userId = req.user.id;
-    const {sku} = req.body;
+    const {sku,color,material} = req.body;
     if(!sku) return res.status(400).json({
         success:false,
         message:'SKU IS REQURIED'
@@ -52,17 +52,23 @@ export const addItemToCart = async(req,res)=>{
                 items:[],
                 totalAmount:0,
                 totalItems:0,
-                subtotal:0
+                subtotal:0,
+                customizations:{}
+
             })
         }
         // console.log("cart: ",cart);
         // console.log("CartTotalAmount: ",cart.totalAmount);
 
 
-        const existingItem = cart.items.find(item=>item.sku === sku);
+        const existingItem = cart.items.find(item=>
+            item.sku === sku &&
+            item.customizations?.color ===color &&
+            item.customizations?.material === material
+        );
 
         if(existingItem){
-
+            // Same item with same customizations exists - increment quantity
             if(existingItem.quantity + 1 > variant.stock){
                 return res.status(400).json({
                     success:false,
@@ -71,9 +77,9 @@ export const addItemToCart = async(req,res)=>{
             }
 
             existingItem.quantity +=1;
-            // console.log("existing price: ",existingItem.price);
             existingItem.subtotal = existingItem.quantity * existingItem.price;
         }else{
+            // New item or different customization - add as new item
             cart.items.push({
                 productId:product._id,
                 image:product.imageUrl[0],
@@ -82,7 +88,11 @@ export const addItemToCart = async(req,res)=>{
                 quantity:1,
                 price:variant.price,
                 subtotal:variant.price*1,
-                size:variant.size
+                size:variant.size,
+                customizations:{
+                    color: color || null,
+                    material: material || null
+                }
             })
         }
 
@@ -187,7 +197,7 @@ export const removeFromCart = async(req,res)=>{
 export const newAddItemtoCart = async(req,res)=>{
 
     const userId = req.user.id;
-    const {sku,quantity} = req.body;
+    const {sku,quantity,color,material} = req.body;
     
     if(!sku || !quantity) return res.status(400).json({
         success:false,
@@ -195,6 +205,7 @@ export const newAddItemtoCart = async(req,res)=>{
     })
     try{
         const product = await Product.findOne({"variants.sku":sku});
+        console.log(product);
         if(!product) return res.status(404).json({success:false,message:'Product not found'});
 
         const variant = product.variants.find(v=>v.sku == sku);
@@ -212,7 +223,12 @@ export const newAddItemtoCart = async(req,res)=>{
             })
         }
 
-        const existingItem = cart.items.find(item=>item.sku ===sku);
+        // Find item with same SKU AND same customizations
+        const existingItem = cart.items.find(item=>
+            item.sku === sku &&
+            item.customizations?.color === color &&
+            item.customizations?.material === material
+        );
 
         if(existingItem){
             const newQuantity = existingItem.quantity + quantity;
@@ -242,7 +258,11 @@ export const newAddItemtoCart = async(req,res)=>{
                 quantity:quantity,
                 price:variant.price,
                 subtotal:variant.price*quantity,
-                size:variant.size
+                size:variant.size,
+                customizations:{
+                    color: color || null,
+                    material: material || null
+                }
             })
         }
         let totalAmount = 0;
@@ -339,3 +359,4 @@ export const clearCart = async(req,res)=>{
         return res.status(500).json({success:false,message:err.message});
     }
 }
+

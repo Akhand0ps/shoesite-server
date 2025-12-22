@@ -52,7 +52,16 @@ const CartSchema = new mongoose.Schema({
                 subtotal:{
                     type:Number,
                     required:true
+                },
+                customizations:{
+                    color:{
+                        type:String,
+                    },
+                    material:{
+                        type:String,
+                    }
                 }
+      
             }
         ],
     },
@@ -63,8 +72,8 @@ const CartSchema = new mongoose.Schema({
     totalItems:{
         type:Number,
         default:0
-    }
-   
+    },
+    
 },{timestamps:true})
 
 

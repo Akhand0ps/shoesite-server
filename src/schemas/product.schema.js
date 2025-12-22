@@ -2,6 +2,19 @@ import mongoose from 'mongoose';
 import * as z from 'zod';
 
 
+
+const customizationOptionsSchema = z.object({
+    colors:z.array(z.object({
+            name:z.string(),
+        })).optional(),
+    materials:z.array(z.object({
+            name:z.string(),
+    })).optional()
+});
+
+
+
+
 const variantSchema = z.object({
          // size:z.number().min(6).max(11),
     size:z.coerce.number().refine(v=>[6,7,8,9,10,11].includes(v),{
@@ -29,7 +42,8 @@ const productSchema = z.object({
     // }),
     variants:z.array(variantSchema).min(1),
     isPublic:z.boolean().default(true),
-    imageUrl:z.array(z.string()).min(1,'Please add atleast one Image')
+    imageUrl:z.array(z.string()).min(1,'Please add atleast one Image'),
+    customizationOptions:customizationOptionsSchema.optional()
 });
 
 

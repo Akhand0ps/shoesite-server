@@ -46,7 +46,15 @@ const OrderSchema = new mongoose.Schema({
         image:{
             type:String,
             required:true
-        },   
+        }, 
+        customizations:{
+        color:{
+            type:String,
+        },
+        material:{
+            type:String,
+        }
+    }  
     }],
     shippingAddress:{
         name:{type:String,required:true},
@@ -95,7 +103,7 @@ const OrderSchema = new mongoose.Schema({
     },
     trackingNumber:String,
     estimatedDelivery:Date,
-    paidAt:Date
+    paidAt:Date,
 },{timestamps:true})
 
 

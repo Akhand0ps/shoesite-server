@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import slugify from "slugify";
+import { required } from "zod/mini";
 
 
 
@@ -81,6 +82,24 @@ const ProductSchema = new mongoose.Schema({
         ],
 
         validate: v=> v.length>0
+    },
+    customizationOptions:{
+        colors:[
+            {
+                name:{
+                    type:String,
+                    required:true
+                },
+            }
+        ],
+        materials:[
+            {
+                name:{
+                    type:String,
+                    required:true
+                },
+            }
+        ]
     }
     
 },{timestamps:true})

@@ -83,13 +83,20 @@ Backend API server for the Shoesite e-commerce application. Built with Node.js, 
 - Image upload to Cloudinary
 - Stock management with validation
 - Category hierarchy (parent/child)
+- Product customization options (colors, materials)
 
 **Shopping Flow:**
-1. User browses products → Add to cart (stock validation)
+1. User browses products → Selects customizations (color, material, size) → Add to cart (stock validation)
 2. Cart operations (add, remove, decrease quantity, clear)
 3. Checkout → Stock re-validation at order time
 4. Order creation → Automatic stock reduction
 5. Order cancellation → Stock restoration
+
+**Customization Features:**
+- Product-level customization options (colors, materials)
+- Cart items store individual customization choices
+- Same product with different customizations = separate cart items
+- Customizations preserved through cart → order flow
 
 **Admin Features:**
 - Product CRUD operations
@@ -598,6 +605,112 @@ Base URL: `http://localhost:3000/api/v1`
 
 ---
 
+### Product Customization
+
+Products can have customization options (colors, materials) that customers select when adding to cart.
+
+#### Customization Data Structure
+
+**In Product Model:**
+```json
+{
+  "customizationOptions": {
+    "colors": [
+      {"name": "black"},
+      {"name": "red"},
+      {"name": "blue"}
+    ],
+    "materials": [
+      {"name": "mesh"},
+      {"name": "leather"},
+      {"name": "suede"}
+    ]
+  }
+}
+```
+
+**When Creating/Updating Products:**
+Include `customizationOptions` in request body:
+```json
+{
+  "title": "Nike Air Jordan",
+  "description": "Premium basketball shoe",
+  "brand": "nike",
+  "originalPrice": 5000,
+  "variants": [...],
+  "customizationOptions": {
+    "colors": [
+      {"name": "black"},
+      {"name": "red"}
+    ],
+    "materials": [
+      {"name": "mesh"},
+      {"name": "leather"}
+    ]
+  }
+}
+```
+
+#### Customer Flow
+
+1. **View Product**: Frontend displays available customization options from `product.customizationOptions`
+2. **Select Customizations**: User picks color (e.g., "black") and material (e.g., "leather")
+3. **Add to Cart**: Send selections in cart request:
+   ```json
+   {
+     "sku": "NIK-001-9",
+     "color": "black",
+     "material": "leather"
+   }
+   ```
+4. **Cart Storage**: Item stored with customizations:
+   ```json
+   {
+     "sku": "NIK-001-9",
+     "customizations": {
+       "color": "black",
+       "material": "leather"
+     }
+   }
+   ```
+5. **Checkout**: Customizations automatically flow to order
+
+#### Important Notes
+
+- **Cart Item Uniqueness**: Same SKU with different customizations = separate cart items
+  - Example: Size 9 + Black + Mesh vs Size 9 + Red + Leather = 2 cart items
+- **Same Customizations**: If user adds item with same SKU + same customizations, quantity increments
+- **Stock Tracking**: Inventory tracked by SKU only (size), not by customization
+- **Optional Field**: Products without `customizationOptions` work normally
+
+---
+  ```json
+  {
+    "sku": "NIKE-8-1234",
+    "delta": 10
+  }
+  ```
+  - `delta`: Positive to increase stock, negative to decrease
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "stock updation successfull",
+    "updatedVariant": {
+      "sku": "NIKE-8-1234",
+      "size": 8,
+      "stock": 25,
+      "price": 4299
+    }
+  }
+  ```
+- **Notes:**
+  - Admin only endpoint
+  - Validates that stock won't go negative
+  - Useful for manual stock adjustments, returns, or corrections
+
+---
+
 ### Cart
 
 #### Get Cart
@@ -634,9 +747,14 @@ Base URL: `http://localhost:3000/api/v1`
 - **Body** (JSON):
   ```json
   {
-    "sku": "NIKE-8-1234"
+    "sku": "NIKE-8-1234",
+    "color": "black",
+    "material": "mesh"
   }
   ```
+  - `sku`: Required - Product SKU
+  - `color`: Optional - Selected color customization
+  - `material`: Optional - Selected material customization
 - **Success Response** (200):
   ```json
   {
@@ -645,16 +763,83 @@ Base URL: `http://localhost:3000/api/v1`
     "cart": {
       "_id": "cart_id",
       "userId": "user_id",
-      "items": [...],
+      "items": [
+        {
+          "productId": "product_id",
+          "sku": "NIKE-8-1234",
+          "title": "Nike Air Max",
+          "image": "https://cloudinary.com/image.jpg",
+          "size": 8,
+          "quantity": 1,
+          "price": 4299,
+          "subtotal": 4299,
+          "customizations": {
+            "color": "black",
+            "material": "mesh"
+          }
+        }
+      ],
+      "totalAmount": 4299,
+      "totalItems": 1
+    }
+  }
+  ```
+- **Notes:**
+  - Adds 1 unit of the item
+  - If item with same SKU **and** same customizations exists, quantity is incremented
+  - If item with same SKU but **different** customizations exists, added as separate item
+  - Stock validation is performed before adding
+  - Cart is created automatically if it doesn't exist
+
+#### Add Multiple Items to Cart
+- **POST** `/cart/newAddItemtoCart`
+- **Headers**: Requires authentication (user token)
+- **Body** (JSON):
+  ```json
+  {
+    "sku": "NIKE-8-1234",
+    "quantity": 2,
+    "color": "red",
+    "material": "leather"
+  }
+  ```
+  - `sku`: Required - Product SKU
+  - `quantity`: Required - Number of items to add
+  - `color`: Optional - Selected color customization
+  - `material`: Optional - Selected material customization
+- **Success Response** (200):
+  ```json
+  {
+    "success": true,
+    "message": "Item added to cart",
+    "cart": {
+      "_id": "cart_id",
+      "userId": "user_id",
+      "items": [
+        {
+          "productId": "product_id",
+          "sku": "NIKE-8-1234",
+          "title": "Nike Air Max",
+          "size": 8,
+          "quantity": 2,
+          "price": 4299,
+          "subtotal": 8598,
+          "customizations": {
+            "color": "red",
+            "material": "leather"
+          }
+        }
+      ],
       "totalAmount": 8598,
       "totalItems": 2
     }
   }
   ```
 - **Notes:**
-  - Cart is automatically created if it doesn't exist
-  - If item already in cart, quantity is incremented
-  - Stock validation is performed before adding
+  - Adds specified quantity of items
+  - If item with same SKU and customizations exists, quantities are combined
+  - Stock validation ensures sufficient inventory
+  - Cart is created automatically if it doesn't exist
 
 #### Remove Item from Cart
 - **DELETE** `/cart/remove/:sku`
@@ -1387,6 +1572,18 @@ UPI ID: success@razorpay
       price: Number      // Required, individual variant price
     }
   ],
+  customizationOptions: {  // Optional, product customization settings
+    colors: [
+      {
+        name: String     // Color name (e.g., "black", "red")
+      }
+    ],
+    materials: [
+      {
+        name: String     // Material name (e.g., "mesh", "leather")
+      }
+    ]
+  },
   createdAt: Date,
   updatedAt: Date
 }
@@ -1405,7 +1602,11 @@ UPI ID: success@razorpay
       size: Number,      // Selected size
       quantity: Number,  // Quantity in cart
       price: Number,     // Unit price
-      subtotal: Number   // price × quantity
+      subtotal: Number,  // price × quantity
+      customizations: {  // Optional, user's customization choices
+        color: String,   // Selected color (e.g., "black")
+        material: String // Selected material (e.g., "leather")
+      }
     }
   ],
   totalAmount: Number,   // Sum of all subtotals
@@ -1429,7 +1630,11 @@ UPI ID: success@razorpay
       size: Number,
       quantity: Number,
       price: Number,
-      subtotal: Number
+      subtotal: Number,
+      customizations: {  // Optional, user's customization choices
+        color: String,   // Selected color (e.g., "black")
+        material: String // Selected material (e.g., "leather")
+      }
     }
   ],
   subtotal: Number,      // Required, sum of items
