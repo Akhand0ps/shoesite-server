@@ -205,7 +205,7 @@ export const newAddItemtoCart = async(req,res)=>{
     })
     try{
         const product = await Product.findOne({"variants.sku":sku});
-        console.log(product);
+        // console.log(product);
         if(!product) return res.status(404).json({success:false,message:'Product not found'});
 
         const variant = product.variants.find(v=>v.sku == sku);
