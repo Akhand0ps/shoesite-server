@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post("/order",authorizeM,onlyUser,order);
 router.get("/my",authorizeM,onlyUser,getAllOrder);
-router.get("/:ordernumber",authorizeM,onlyUser,getSingleOrder);
+router.get("/:ordernumber",authorizeM,getSingleOrder);
 router.put("/cancel/:ordernumber",authorizeM,onlyUser,cancelOrder);
 
 
