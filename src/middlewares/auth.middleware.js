@@ -6,9 +6,9 @@ export const authorizeM = async(req,res,next)=>{
 
 
 
-    const token = isAdminRoute ? req.cookies.adminToken: req.cookies.userToken;
-    //  const token = req.cookies.adminToken || req.cookies.userToken;
-
+    // const token = isAdminRoute ? req.cookies.adminToken: req.cookies.userToken;
+     const token = req.cookies.adminToken || req.cookies.userToken;
+    // console.log("token: ",token);
 
     // console.log("token: ",token);
     if(!token) return res.status(400).json({success:false,meesage:'TOKEN NOT FOUND'});
